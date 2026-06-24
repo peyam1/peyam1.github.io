@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#B9772E">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Boulangerie">
+<title>Ma Boulangerie — Gestion</title>
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="favicon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  :root{
+    --bg:#FBF7F1; --surface:#FFFFFF; --surface-2:#FFF6E9;
+    --ink:#2A2521; --ink-soft:#6B6258; --line:#ECE1D2;
+    --crust:#B9772E; --crust-dk:#8A5618; --honey:#E7A529;
+    --income:#2F7D55; --income-bg:#E8F2EC;
+    --expense:#C0492F; --expense-bg:#F8E9E5;
+    --radius:16px; --radius-sm:12px;
+    --shadow:0 2px 12px rgba(90,55,15,.07);
+    --shadow-lg:0 8px 30px rgba(90,55,15,.16);
+    --tab-h:64px; --top-h:54px;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{font-family:var(--sans);color:var(--ink);background:var(--bg);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none;}
+  #app{max-width:520px;margin:0 auto;min-height:100vh;position:relative;}
+
+  .topbar{position:sticky;top:0;z-index:30;height:calc(var(--top-h) + env(safe-area-inset-top));padding-top:env(safe-area-inset-top);display:flex;align-items:center;justify-content:space-between;gap:10px;padding-left:16px;padding-right:14px;background:var(--crust);color:#fff;box-shadow:0 2px 8px rgba(90,55,15,.18);}
+  .topbar .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:16px;letter-spacing:-.2px;min-width:0;}
+  .topbar .brand .logo{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.16);display:grid;place-items:center;font-size:17px;flex:none;}
+  .topbar .brand .bn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .user-chip{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.17);border:none;color:#fff;font-family:inherit;font-weight:700;font-size:12.5px;padding:7px 11px;border-radius:999px;cursor:pointer;max-width:150px;flex:none;}
+  .user-chip .un{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;}
+
+  main#screen{padding:16px 16px calc(var(--tab-h) + env(safe-area-inset-bottom) + 18px);min-height:calc(100vh - var(--top-h));}
+  .section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 12px;}
+  .section-head h2{font-size:20px;font-weight:800;letter-spacing:-.4px;margin:0;}
+  .section-head .sub{color:var(--ink-soft);font-size:13px;}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);}
+  .card.pad{padding:16px;}
+  .card + .card{margin-top:12px;}
+
+  .money{font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"tnum";letter-spacing:-.3px;}
+  .pos{color:var(--income);} .neg{color:var(--expense);}
+
+  .kpis{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:14px;}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:13px 14px;box-shadow:var(--shadow);}
+  .kpi .label{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-soft);font-weight:700;}
+  .kpi .val{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:20px;font-weight:700;margin-top:5px;letter-spacing:-.5px;}
+  .kpi .meta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+
+  .receipt{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:18px 18px 16px;position:relative;box-shadow:var(--shadow);overflow:hidden;}
+  .receipt::before{content:"";position:absolute;top:-9px;left:0;right:0;height:9px;background-image:radial-gradient(circle at 9px 0, transparent 0 8px, var(--surface-2) 9px);background-size:18px 18px;background-position:center top;}
+  .receipt .r-label{font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--ink-soft);font-weight:700;}
+  .receipt .r-amount{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:34px;font-weight:700;letter-spacing:-1px;margin:4px 0 14px;}
+  .receipt .r-rows{display:flex;gap:10px;}
+  .receipt .r-row{flex:1;background:#fff;border:1px solid var(--line);border-radius:var(--radius-sm);padding:9px 11px;}
+  .receipt .r-row .t{font-size:11px;color:var(--ink-soft);font-weight:600;display:flex;align-items:center;gap:5px;}
+  .receipt .r-row .n{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;font-size:15px;margin-top:3px;}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+
+  .list{display:flex;flex-direction:column;}
+  .row{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--line);background:var(--surface);}
+  .row:first-child{border-top-left-radius:var(--radius);border-top-right-radius:var(--radius);}
+  .row:last-child{border-bottom:none;border-bottom-left-radius:var(--radius);border-bottom-right-radius:var(--radius);}
+  .row.tap{cursor:pointer;} .row.tap:active{background:var(--surface-2);}
+  .row .ic{width:40px;height:40px;border-radius:11px;flex:none;display:grid;place-items:center;font-size:19px;background:var(--surface-2);}
+  .row .body{flex:1;min-width:0;}
+  .row .body .t{font-weight:650;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .row .body .s{font-size:12.5px;color:var(--ink-soft);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .row .end{text-align:right;flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+  .row .end .amt{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;font-size:15px;}
+
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--ink-soft);border:1px solid var(--line);}
+  .badge.low{background:var(--expense-bg);color:var(--expense);border-color:#efc9bf;}
+  .badge.ok{background:var(--income-bg);color:var(--income);border-color:#c4e2d2;}
+  .badge.active{background:var(--income);color:#fff;border-color:var(--income);}
+
+  .btn{appearance:none;border:none;font-family:inherit;font-size:15px;font-weight:700;border-radius:var(--radius-sm);padding:13px 16px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;line-height:1;transition:transform .05s ease, filter .15s ease;}
+  .btn:active{transform:scale(.97);}
+  .btn-primary{background:var(--crust);color:#fff;} .btn-primary:active{background:var(--crust-dk);}
+  .btn-block{width:100%;}
+  .btn-ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line);}
+  .btn-danger{background:var(--expense-bg);color:var(--expense);border:1px solid #efc9bf;}
+  .btn-sm{padding:9px 12px;font-size:13.5px;border-radius:10px;}
+  .btn-icon{width:46px;height:46px;padding:0;border-radius:12px;font-size:22px;flex:none;}
+  .fab-add{display:inline-flex;align-items:center;gap:7px;background:var(--crust);color:#fff;border:none;border-radius:999px;padding:9px 15px;font-weight:700;font-size:13.5px;cursor:pointer;flex:none;}
+  .fab-add:active{background:var(--crust-dk);}
+
+  .empty{text-align:center;padding:46px 24px;color:var(--ink-soft);}
+  .empty .e-ic{font-size:40px;margin-bottom:10px;opacity:.7;}
+  .empty .e-t{font-weight:700;color:var(--ink);margin-bottom:4px;font-size:16px;}
+  .empty .e-s{font-size:13.5px;}
+
+  .pos-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .prod-btn{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px;text-align:left;cursor:pointer;box-shadow:var(--shadow);}
+  .prod-btn:active{transform:scale(.97);border-color:var(--crust);}
+  .prod-btn .pn{font-weight:700;font-size:14px;line-height:1.25;}
+  .prod-btn .pp{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--crust-dk);font-weight:700;margin-top:6px;font-size:14px;}
+  .prod-btn .pst{font-size:11px;color:var(--ink-soft);margin-top:3px;}
+  .prod-btn .pst.lo{color:var(--expense);font-weight:700;}
+
+  .cart-line{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);}
+  .cart-line:last-child{border-bottom:none;}
+  .cart-line .cn{flex:1;min-width:0;}
+  .cart-line .cn .t{font-weight:650;font-size:14.5px;}
+  .cart-line .cn .s{font-family:var(--mono);font-size:12px;color:var(--ink-soft);}
+  .stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;}
+  .stepper button{width:32px;height:32px;border:none;background:#fff;font-size:18px;font-weight:700;color:var(--crust);cursor:pointer;line-height:1;}
+  .stepper button:active{background:var(--surface-2);}
+  .stepper .q{min-width:30px;text-align:center;font-family:var(--mono);font-weight:700;font-size:14px;}
+  .cart-line .lt{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;width:78px;text-align:right;font-size:14px;}
+  .cart-total{display:flex;justify-content:space-between;align-items:baseline;padding-top:12px;margin-top:4px;border-top:2px dashed var(--line);}
+  .cart-total .lab{font-weight:700;}
+  .cart-total .amt{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;font-size:24px;letter-spacing:-.5px;}
+
+  .field{margin-bottom:13px;}
+  .field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;letter-spacing:.2px;}
+  .field input,.field select,.field textarea{width:100%;font-family:inherit;font-size:16px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px 13px;outline:none;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--crust);box-shadow:0 0 0 3px rgba(185,119,46,.13);}
+  .field .num{font-family:var(--mono);}
+  .field-row{display:flex;gap:11px;} .field-row .field{flex:1;}
+  .seg{display:flex;gap:8px;flex-wrap:wrap;}
+  .seg .opt{flex:1;min-width:calc(50% - 4px);border:1px solid var(--line);background:#fff;border-radius:10px;padding:11px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;color:var(--ink-soft);}
+  .seg .opt.on{background:var(--crust);border-color:var(--crust);color:#fff;}
+
+  .overlay{position:fixed;inset:0;z-index:50;background:rgba(40,28,18,.45);display:flex;align-items:flex-end;justify-content:center;animation:fade .15s ease;}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .modal,.sheet{width:100%;max-width:520px;background:var(--bg);border-radius:22px 22px 0 0;max-height:92vh;overflow-y:auto;animation:slideup .22s cubic-bezier(.2,.8,.2,1);padding-bottom:calc(env(safe-area-inset-bottom) + 8px);}
+  @keyframes slideup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .modal-head{position:sticky;top:0;background:var(--bg);padding:16px 18px 10px;display:flex;align-items:center;justify-content:space-between;z-index:2;}
+  .modal-head h3{margin:0;font-size:18px;font-weight:800;letter-spacing:-.3px;}
+  .modal-head .x{width:34px;height:34px;border-radius:50%;border:none;background:var(--surface-2);font-size:18px;cursor:pointer;color:var(--ink-soft);}
+  .modal-body{padding:4px 18px 18px;}
+  .grip{width:38px;height:4px;background:var(--line);border-radius:999px;margin:9px auto 0;}
+
+  .menu-item{display:flex;align-items:center;gap:14px;padding:15px 18px;border-bottom:1px solid var(--line);cursor:pointer;background:transparent;width:100%;border:none;text-align:left;}
+  .menu-item:active{background:var(--surface-2);}
+  .menu-item .mi-ic{width:42px;height:42px;border-radius:12px;background:var(--surface-2);display:grid;place-items:center;font-size:20px;flex:none;}
+  .menu-item .mi-t{font-weight:700;font-size:15.5px;}
+  .menu-item .mi-s{font-size:12.5px;color:var(--ink-soft);}
+  .menu-item .chev{margin-left:auto;color:var(--ink-soft);font-size:20px;}
+
+  .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;height:calc(var(--tab-h) + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:#fff;border-top:1px solid var(--line);display:flex;max-width:520px;margin:0 auto;box-shadow:0 -2px 14px rgba(90,55,15,.06);}
+  .tab{flex:1;border:none;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--ink-soft);padding-top:7px;}
+  .tab .ti{font-size:21px;line-height:1;filter:grayscale(.4);opacity:.7;}
+  .tab .tl{font-size:10.5px;font-weight:700;letter-spacing:.2px;}
+  .tab.active{color:var(--crust);}
+  .tab.active .ti{filter:none;opacity:1;transform:translateY(-1px);}
+
+  .chart{display:flex;align-items:flex-end;gap:6px;height:96px;padding-top:6px;}
+  .chart .bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end;}
+  .chart .bar{width:78%;max-width:30px;background:linear-gradient(180deg,var(--honey),var(--crust));border-radius:5px 5px 2px 2px;min-height:3px;transition:height .4s ease;}
+  .chart .bl{font-size:10px;color:var(--ink-soft);font-weight:600;}
+
+  .toast{position:fixed;left:50%;bottom:calc(var(--tab-h) + env(safe-area-inset-bottom) + 16px);transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:999px;font-size:14px;font-weight:600;z-index:80;opacity:0;transition:opacity .2s,transform .2s;box-shadow:var(--shadow-lg);pointer-events:none;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .hint{font-size:12.5px;color:var(--ink-soft);background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:11px 13px;line-height:1.5;}
+
+  /* Connexion / configuration */
+  .auth-wrap{min-height:calc(100vh - 40px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 22px;}
+  .auth-logo{width:74px;height:74px;border-radius:20px;background:var(--crust);display:grid;place-items:center;font-size:40px;box-shadow:var(--shadow-lg);margin-bottom:14px;}
+  .auth-title{font-size:23px;font-weight:800;letter-spacing:-.4px;text-align:center;}
+  .auth-sub{color:var(--ink-soft);font-size:13.5px;margin:6px 0 20px;text-align:center;line-height:1.5;}
+  .auth-card{width:100%;max-width:380px;}
+  .auth-pick{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;justify-content:center;}
+  .auth-pick .pu{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink);}
+  .auth-pick .pu:active{background:var(--surface-2);transform:scale(.97);}
+  .auth-foot{font-size:11.5px;color:var(--ink-soft);text-align:center;margin-top:14px;line-height:1.5;}
+  .total-strip{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:13px;}
+  .total-strip .lab{font-weight:700;font-size:13px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.5px;}
+  .total-strip .amt{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;font-size:19px;}
+
+  /* Ticket / reçu */
+  .ticket{font-family:var(--mono);background:#fff;color:#111;max-width:300px;margin:0 auto;padding:16px 18px;font-size:12.5px;line-height:1.55;border:1px solid var(--line);border-radius:10px;}
+  .tk-head{text-align:center;}
+  .tk-name{font-weight:700;font-size:15px;letter-spacing:.5px;text-transform:uppercase;}
+  .tk-sub{font-size:11px;}
+  .tk-sep{border-top:1px dashed #aaa;margin:9px 0;}
+  .tk-meta div{font-size:11.5px;}
+  .tk-line{display:flex;gap:6px;}
+  .tk-line .tk-q{flex:none;width:30px;}
+  .tk-line .tk-n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tk-line .tk-a{flex:none;text-align:right;min-width:60px;}
+  .tk-total{display:flex;justify-content:space-between;font-weight:700;font-size:14px;}
+  .tk-pay{font-size:11.5px;margin-top:3px;}
+  .tk-credit{text-align:center;font-weight:700;margin-top:9px;font-size:12px;border:1px dashed #888;padding:6px;border-radius:6px;}
+  .tk-foot{text-align:center;font-size:11.5px;}
+
+  /* Rapport imprimable A4 */
+  .report{font-family:var(--sans);color:#111;background:#fff;max-width:720px;margin:0 auto;padding:8px;font-size:13px;}
+  .report .rp-head{text-align:center;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px;}
+  .report .rp-name{font-size:20px;font-weight:800;}
+  .report .rp-sub{font-size:12px;color:#555;}
+  .report .rp-title{font-size:15px;font-weight:700;margin-top:8px;}
+  .report h4{font-size:14px;margin:16px 0 6px;border-bottom:1px solid #ccc;padding-bottom:3px;}
+  .report table{width:100%;border-collapse:collapse;margin-bottom:6px;}
+  .report th,.report td{text-align:left;padding:6px 8px;border-bottom:1px solid #e5e5e5;font-size:12.5px;}
+  .report th{background:#f3f3f3;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;}
+  .report td.r,.report th.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .report tr.tot td{font-weight:800;border-top:2px solid #111;border-bottom:2px solid #111;background:#faf6ef;}
+  .report .rp-foot{text-align:center;font-size:11px;color:#777;margin-top:18px;border-top:1px solid #ccc;padding-top:8px;}
+
+  #printArea{display:none;}
+  @media print{
+    body{background:#fff;}
+    #app,#modalRoot,#toast{display:none !important;}
+    #printArea{display:block !important;padding:0;margin:0;}
+    #printArea .ticket{border:none;border-radius:0;max-width:none;width:100%;padding:0;}
+    #printArea .report{max-width:none;padding:0;}
+    .report tr,.report table{page-break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><span class="logo">🥖</span><span class="bn" id="brandName">Ma Boulangerie</span></div>
+    <button class="user-chip" data-action="switchUser">👤 <span class="un" id="activeUserName">—</span> ▾</button>
+  </header>
+  <main id="screen"></main>
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+<div id="modalRoot"></div>
+<div id="printArea"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ====================================================================
+   🔐 CODE D'ACCÈS — à changer AVANT de mettre l'application en ligne.
+   Il est demandé UNE SEULE FOIS, pour créer le compte administrateur
+   sur un appareil. Ne le communiquez qu'aux personnes de confiance.
+   (Astuce : choisissez quelque chose de personnel et difficile à deviner.)
+   ==================================================================== */
+const ACCESS_CODE = "BOULANGERIE-2026";
+
+/* ============================ Stockage ============================ */
+const KEY = "boulangerie_data_v1";
+const Store = (() => {
+  let mem = null;
+  function avail(){ try{ const k="__t__"; localStorage.setItem(k,"1"); localStorage.removeItem(k); return true; }catch(e){ return false; } }
+  const ok = avail();
+  return {
+    persistent: ok,
+    get(){ if(ok){ try{ return JSON.parse(localStorage.getItem(KEY) || "null"); }catch(e){ return null; } } return mem; },
+    set(d){ if(ok){ try{ localStorage.setItem(KEY, JSON.stringify(d)); return; }catch(e){} } mem = d; }
+  };
+})();
+
+/* ============================ Données ============================ */
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function defaultData(){
+  const c1 = uid();
+  return {
+    settings:{ nom:"Ma Boulangerie", devise:"HTG", caisseInitiale:0, adresse:"", telephone:"", activeUserId:c1, compteurVente:0 },
+    caissiers:[{id:c1, nom:"Administrateur", role:"admin"}],
+    clients:[],
+    produits:[
+      {id:uid(), nom:"Pain ordinaire", cat:"Pain",         pv:25,  pr:12,  stock:60, unite:"pièce",     seuil:15},
+      {id:uid(), nom:"Croissant",      cat:"Viennoiserie", pv:50,  pr:25,  stock:40, unite:"pièce",     seuil:10},
+      {id:uid(), nom:"Gâteau",         cat:"Pâtisserie",   pv:600, pr:300, stock:6,  unite:"pièce",     seuil:3},
+      {id:uid(), nom:"Jus",            cat:"Boisson",      pv:75,  pr:40,  stock:24, unite:"bouteille", seuil:6}
+    ],
+    ventes:[], decaissements:[], employes:[], paiements:[], mouvements:[], reglements:[]
+  };
+}
+
+let db = Store.get();
+if(!db){ db = defaultData(); Store.set(db); }
+// migration douce
+["produits","ventes","decaissements","employes","paiements","mouvements","clients","reglements","caissiers"].forEach(k=>{ if(!Array.isArray(db[k])) db[k]=[]; });
+if(!db.settings) db.settings = {};
+const sdef = defaultData().settings;
+Object.keys(sdef).forEach(k=>{ if(db.settings[k]===undefined) db.settings[k]=sdef[k]; });
+if(!db.caissiers.length){ db.caissiers=[{id:uid(), nom:"Administrateur", pin:"", role:"admin"}]; }
+db.caissiers.forEach(c=>{ if(c.role!=="admin" && c.role!=="caissier") c.role="caissier"; });
+if(!db.caissiers.some(c=>c.role==="admin")){ const a=db.caissiers.find(c=>c.id===db.settings.activeUserId)||db.caissiers[0]; a.role="admin"; }
+if(!db.caissiers.find(c=>c.id===db.settings.activeUserId)){ db.settings.activeUserId = db.caissiers[0].id; }
+if(!db.settings.compteurVente){ db.settings.compteurVente = db.ventes.reduce((m,v)=>Math.max(m, v.numero||0), 0); }
+// identifiants de connexion + retrait des anciens PIN
+db.caissiers.forEach((c,i)=>{
+  if(!c.login){ let base=slugLogin(c.nom)||("user"+(i+1)); let lg=base, n=1; while(db.caissiers.some(x=>x!==c && (x.login||"").toLowerCase()===lg.toLowerCase())){ lg=base+(++n); } c.login=lg; }
+  if(c.pin!==undefined) delete c.pin;
+});
+
+function save(){ Store.set(db); }
+
+/* ============================ Utilitaires ============================ */
+const nf = new Intl.NumberFormat("fr-FR",{maximumFractionDigits:2});
+function money(n){ return nf.format(Number(n)||0) + " " + db.settings.devise; }
+function num(n){ return nf.format(Number(n)||0); }
+function localKey(d){ const x=new Date(d); return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"); }
+function todayKey(){ return localKey(new Date()); }
+function fmtDate(iso){ return new Date(iso).toLocaleDateString("fr-FR",{day:"2-digit",month:"short"}); }
+function fmtDateTime(iso){ const d=new Date(iso); return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"short",year:"numeric"})+" "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function sum(arr,f){ return arr.reduce((a,x)=>a+(Number(f(x))||0),0); }
+function prodById(id){ return db.produits.find(p=>p.id===id); }
+function empById(id){ return db.employes.find(e=>e.id===id); }
+function clientById(id){ return db.clients.find(c=>c.id===id); }
+function activeUser(){ return db.caissiers.find(c=>c.id===db.settings.activeUserId) || db.caissiers[0] || {nom:"—",id:null,role:"admin"}; }
+function isAdmin(){ return (activeUser().role||"caissier")==="admin"; }
+const ADMIN_VIEWS = ["decaissements","rapports","produits","employes","paie","parametres","caissiers"];
+function canAccess(view){ return isAdmin() || !ADMIN_VIEWS.includes(view); }
+
+/* ---- Authentification (locale) ---- */
+let authUserId = null;
+function hashStr(s){ s=String(s); let h=5381; for(let i=0;i<s.length;i++){ h=((h<<5)+h)+s.charCodeAt(i); h|=0; } return "h"+(h>>>0).toString(36); }
+function userByLogin(login){ const l=(login||"").trim().toLowerCase(); return db.caissiers.find(c=>(c.login||"").toLowerCase()===l); }
+function needsSetup(){ return !db.caissiers.some(c=>c.password); }
+function isAuthed(){ return !!authUserId && db.caissiers.some(c=>c.id===authUserId); }
+function loginAs(u){ authUserId=u.id; db.settings.activeUserId=u.id; save(); try{ sessionStorage.setItem("boul_auth", u.id); }catch(e){} showChromeUI(); setView("dashboard"); toast((u.role==="admin"?"🛡️ ":"👤 ")+u.nom); }
+function logout(){ authUserId=null; try{ sessionStorage.removeItem("boul_auth"); }catch(e){} closeOverlay(); renderWelcome(); }
+function hideChrome(){ const t=document.querySelector(".topbar"); if(t) t.style.display="none"; const b=document.getElementById("tabbar"); if(b) b.style.display="none"; }
+function showChromeUI(){ const t=document.querySelector(".topbar"); if(t) t.style.display=""; const b=document.getElementById("tabbar"); if(b) b.style.display=""; }
+function slugLogin(s){ return (String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"").slice(0,20))||"user"; }
+
+/* Caisse = caisse initiale + ventes encaissées (hors crédit) + règlements − décaissements − paie */
+function soldeCaisse(){
+  const cashVentes = sum(db.ventes.filter(v=>v.paiement!=="Crédit"), v=>v.total);
+  return (Number(db.settings.caisseInitiale)||0)
+    + cashVentes
+    + sum(db.reglements, r=>r.montant)
+    - sum(db.decaissements, d=>d.montant)
+    - sum(db.paiements, p=>p.montant);
+}
+function clientBalance(id){
+  const credits = sum(db.ventes.filter(v=>v.clientId===id && v.paiement==="Crédit"), v=>v.total);
+  const regs = sum(db.reglements.filter(r=>r.clientId===id), r=>r.montant);
+  return credits - regs;
+}
+function creditsTotal(){ return db.clients.reduce((a,c)=>a + Math.max(0, clientBalance(c.id)), 0); }
+
+const CATS = ["Pain","Viennoiserie","Pâtisserie","Boisson","Snack","Autre"];
+const CAT_IC = {Pain:"🥖",Viennoiserie:"🥐",Pâtisserie:"🍰",Boisson:"🧃",Snack:"🥪",Autre:"🛒"};
+const PAY_METHODS = ["Espèces","MonCash","Carte","Crédit"];
+const EXP_CATS = ["Matières premières","Loyer","Électricité / Eau","Transport","Entretien","Emballage","Taxes","Divers"];
+const EXP_IC = {"Matières premières":"🌾","Loyer":"🏠","Électricité / Eau":"💡","Transport":"🚚","Entretien":"🧰","Emballage":"📦","Taxes":"🧾","Divers":"💼"};
+const PAY_TYPES = ["Salaire","Avance","Prime","Autre"];
+
+/* ============================ Navigation ============================ */
+const TABS = [
+  {id:"dashboard",    ic:"🏠", label:"Accueil"},
+  {id:"vente",        ic:"🛒", label:"Vente"},
+  {id:"stock",        ic:"📦", label:"Stock"},
+  {id:"decaissements",ic:"💸", label:"Dépenses"},
+  {id:"plus",         ic:"☰",  label:"Plus"}
+];
+const MORE = [
+  {id:"ventes",    ic:"🧾", label:"Ventes",     sub:"Historique et reçus"},
+  {id:"clients",   ic:"🧑‍🤝‍🧑", label:"Clients",   sub:"Crédits et règlements"},
+  {id:"produits",  ic:"🥐", label:"Produits",   sub:"Catalogue, prix et coûts"},
+  {id:"employes",  ic:"👥", label:"Employés",   sub:"Personnel de la boulangerie"},
+  {id:"paie",      ic:"💵", label:"Paie",       sub:"Salaires, avances et primes"},
+  {id:"rapports",  ic:"📊", label:"Rapports",   sub:"Chiffres et bénéfices"},
+  {id:"parametres",ic:"⚙️", label:"Paramètres", sub:"Devise, caisse, caissiers…"}
+];
+const TITLES = {dashboard:"Tableau de bord",vente:"Point de vente",stock:"Gestion de stock",decaissements:"Décaissements",ventes:"Ventes",clients:"Clients",produits:"Produits",employes:"Employés",paie:"Paie",rapports:"Rapports",parametres:"Paramètres",caissiers:"Caissiers"};
+
+const state = { view:"dashboard", cart:[], cartClientId:"", cartRecu:"", quickClientForCart:false };
+
+const screen = document.getElementById("screen");
+const modalRoot = document.getElementById("modalRoot");
+
+function setView(name){
+  if(name==="plus"){ openMore(); return; }
+  if(!canAccess(name)){ closeOverlay(); toast("🔒 Réservé à l'administrateur"); return; }
+  state.view = name;
+  screen.innerHTML = (VIEWS[name]||VIEWS.dashboard)();
+  document.getElementById("brandName").textContent = db.settings.nom;
+  refreshTopUser();
+  renderTabs();
+  window.scrollTo(0,0);
+  if(AFTER[name]) AFTER[name]();
+}
+function refreshTopUser(){
+  const el=document.getElementById("activeUserName"); if(el) el.textContent = activeUser().nom;
+  const chip=document.querySelector(".user-chip"); if(chip) chip.style.background = isAdmin()? "rgba(255,255,255,.30)" : "rgba(255,255,255,.17)";
+}
+const CAISSIER_TABS = [
+  {id:"dashboard", ic:"🏠", label:"Accueil"},
+  {id:"vente",     ic:"🛒", label:"Vente"},
+  {id:"clients",   ic:"🧑‍🤝‍🧑", label:"Clients"},
+  {id:"stock",     ic:"📦", label:"Stock"},
+  {id:"plus",      ic:"☰",  label:"Plus"}
+];
+function currentTabs(){ return isAdmin()? TABS : CAISSIER_TABS; }
+function renderTabs(){
+  const tb = document.getElementById("tabbar");
+  const tabs = currentTabs();
+  const ids = tabs.map(t=>t.id);
+  const inMore = !ids.includes(state.view);
+  tb.innerHTML = tabs.map(t=>{
+    const active = t.id===state.view || (t.id==="plus" && inMore);
+    return `<button class="tab ${active?"active":""}" data-nav="${t.id}"><span class="ti">${t.ic}</span><span class="tl">${t.label}</span></button>`;
+  }).join("");
+}
+
+/* ============================ Overlays ============================ */
+function openModal(title, bodyHtml){
+  modalRoot.innerHTML =
+    `<div class="overlay"><div class="modal" role="dialog">
+       <div class="grip"></div>
+       <div class="modal-head"><h3>${esc(title)}</h3><button class="x" data-action="close">✕</button></div>
+       <div class="modal-body">${bodyHtml}</div>
+     </div></div>`;
+}
+function openMore(){
+  const tabIds = currentTabs().map(t=>t.id);
+  const items = MORE.filter(m=>canAccess(m.id) && !tabIds.includes(m.id));
+  const roleNote = isAdmin()
+    ? `<div class="hint" style="margin:10px 14px">Vous êtes connecté en <b>administrateur</b> : accès complet.</div>`
+    : `<div class="hint" style="margin:10px 14px">Mode <b>caissier</b> : rapports, paie et paramètres sont réservés à l'administrateur.</div>`;
+  modalRoot.innerHTML =
+    `<div class="overlay"><div class="sheet">
+       <div class="grip"></div>
+       <div class="modal-head"><h3>Plus d'options</h3><button class="x" data-action="close">✕</button></div>
+       <div class="list" style="padding-bottom:8px">
+         ${items.map(m=>`<button class="menu-item" data-nav="${m.id}">
+            <span class="mi-ic">${m.ic}</span>
+            <span><span class="mi-t">${m.label}</span><br><span class="mi-s">${m.sub}</span></span>
+            <span class="chev">›</span></button>`).join("")}
+       </div>
+       ${roleNote}
+     </div></div>`;
+}
+function openUserSwitcher(){
+  const others = db.caissiers.filter(c=>c.password && c.id!==authUserId);
+  const list = others.map(c=>`<button class="menu-item" data-action="switchTo" data-id="${c.id}">
+      <span class="mi-ic">${c.role==="admin"?"🛡️":"👤"}</span>
+      <span><span class="mi-t">${esc(c.nom)}</span><br><span class="mi-s">${c.role==="admin"?"Administrateur":"Caissier"}</span></span>
+      <span class="chev">›</span></button>`).join("");
+  const manage = isAdmin()
+    ? `<button class="menu-item" data-nav="caissiers"><span class="mi-ic">⚙️</span><span><span class="mi-t">Gérer les utilisateurs</span><br><span class="mi-s">Comptes, rôles, mots de passe</span></span><span class="chev">›</span></button>`
+    : "";
+  modalRoot.innerHTML =
+    `<div class="overlay"><div class="sheet">
+       <div class="grip"></div>
+       <div class="modal-head"><h3>${esc(activeUser().nom)}</h3><button class="x" data-action="close">✕</button></div>
+       <div class="list">
+         ${list ? `<div class="menu-item" style="cursor:default"><span class="mi-ic">🔁</span><span><span class="mi-t">Changer d'utilisateur</span><br><span class="mi-s">Mot de passe demandé</span></span></div>${list}` : ""}
+         ${manage}
+         <button class="menu-item" data-action="logout"><span class="mi-ic">🚪</span><span><span class="mi-t">Se déconnecter</span><br><span class="mi-s">Revenir à l'écran de connexion</span></span><span class="chev">›</span></button>
+       </div>
+     </div></div>`;
+}
+function renderWelcome(){
+  hideChrome();
+  const setup = needsSetup();
+  screen.innerHTML = `
+   <div class="auth-wrap">
+     <div class="auth-logo">🥖</div>
+     <div class="auth-title">${esc(db.settings.nom)}</div>
+     <div class="auth-sub">Gestion de votre boulangerie<br><span style="font-size:12px;opacity:.85">Application privée — accès réservé</span></div>
+     <div class="auth-card">
+       <button class="btn btn-primary btn-block" data-action="goEnter" style="padding:16px;font-size:16px">${setup?"🔐 Configurer l'accès":"Se connecter →"}</button>
+       ${setup?`<p class="hint" style="margin-top:14px">Première utilisation sur cet appareil. La création du compte administrateur nécessite le <b>code d'accès</b> fourni par le propriétaire.</p>`:`<p class="auth-foot">Aucun compte ne peut être créé ici. Seul l'administrateur ajoute des utilisateurs depuis l'application.</p>`}
+     </div>
+   </div>`;
+}
+function goEnter(){ if(needsSetup()) renderSetup(); else renderLogin(); }
+function goWelcome(){ closeOverlay(); renderWelcome(); }
+function renderSetup(){
+  hideChrome();
+  const admin = db.caissiers.find(c=>c.role==="admin") || db.caissiers[0] || {nom:"Administrateur"};
+  screen.innerHTML = `
+   <div class="auth-wrap">
+     <div class="auth-logo">🥖</div>
+     <div class="auth-title">Configuration</div>
+     <div class="auth-sub">Application privée.<br>Entrez le code d'accès pour créer le compte administrateur.</div>
+     <div class="auth-card">
+       <div class="field"><label>Code d'accès</label><input id="su_code" autocapitalize="characters" autocorrect="off" placeholder="code fourni par le propriétaire"></div>
+       <div class="field"><label>Nom (affiché)</label><input id="su_nom" value="${esc(admin.nom||"Administrateur")}" placeholder="Ex : Patron"></div>
+       <div class="field"><label>Identifiant de connexion</label><input id="su_user" autocapitalize="none" autocorrect="off" placeholder="ex : admin"></div>
+       <div class="field"><label>Mot de passe</label><input id="su_pass" type="password" placeholder="au moins 4 caractères"></div>
+       <div class="field"><label>Confirmer le mot de passe</label><input id="su_pass2" type="password" placeholder="répétez le mot de passe"></div>
+       <button class="btn btn-primary btn-block" data-action="doSetup" style="padding:15px;font-size:16px">Créer le compte administrateur</button>
+       <button class="btn btn-ghost btn-block" data-action="goWelcome" style="margin-top:9px">← Retour</button>
+     </div>
+   </div>`;
+  setTimeout(()=>{ const i=document.getElementById("su_code"); if(i) i.focus(); },60);
+}
+function renderLogin(){
+  hideChrome();
+  const withPw = db.caissiers.filter(c=>c.password);
+  const pick = withPw.length ? `<div class="auth-pick">${withPw.map(c=>`<button class="pu" data-action="pickLogin" data-id="${c.id}">${c.role==="admin"?"🛡️":"👤"} ${esc(c.nom)}</button>`).join("")}</div>` : "";
+  screen.innerHTML = `
+   <div class="auth-wrap">
+     <div class="auth-logo">🥖</div>
+     <div class="auth-title">${esc(db.settings.nom)}</div>
+     <div class="auth-sub">Connectez-vous pour accéder à la caisse</div>
+     <div class="auth-card">
+       ${pick}
+       <div class="field"><label>Identifiant</label><input id="lg_user" autocapitalize="none" autocorrect="off" autocomplete="username" placeholder="ex : admin"></div>
+       <div class="field"><label>Mot de passe</label><input id="lg_pass" type="password" autocomplete="current-password" placeholder="••••••"></div>
+       <button class="btn btn-primary btn-block" data-action="doLogin" style="padding:15px;font-size:16px">Se connecter</button>
+       <button class="btn btn-ghost btn-block" data-action="goWelcome" style="margin-top:9px">← Retour à l'accueil</button>
+     </div>
+   </div>`;
+  setTimeout(()=>{ const i=document.getElementById("lg_user"); if(i && !i.value) i.focus(); },60);
+}
+function pickLogin(id){ const c=db.caissiers.find(x=>x.id===id); if(!c) return; const u=document.getElementById("lg_user"); if(u) u.value=c.login||""; const p=document.getElementById("lg_pass"); if(p) p.focus(); }
+function doLogin(){
+  const lg=(document.getElementById("lg_user").value||"").trim();
+  const pw=document.getElementById("lg_pass").value||"";
+  const u=userByLogin(lg);
+  if(!u || !u.password || u.password!==hashStr(pw)){ toast("Identifiant ou mot de passe incorrect"); return; }
+  loginAs(u);
+}
+function doSetup(){
+  const code=(document.getElementById("su_code").value||"").trim();
+  if(code!==ACCESS_CODE){ toast("Code d'accès incorrect"); return; }
+  const nom=(document.getElementById("su_nom").value||"").trim()||"Administrateur";
+  const lg=(document.getElementById("su_user").value||"").trim();
+  const pw=document.getElementById("su_pass").value||"";
+  const pw2=document.getElementById("su_pass2").value||"";
+  if(lg.length<3){ toast("Identifiant : au moins 3 caractères"); return; }
+  if(pw.length<4){ toast("Mot de passe : au moins 4 caractères"); return; }
+  if(pw!==pw2){ toast("Les mots de passe ne correspondent pas"); return; }
+  let admin=db.caissiers.find(c=>c.role==="admin") || db.caissiers[0];
+  if(!admin){ admin={id:uid()}; db.caissiers.push(admin); }
+  admin.nom=nom; admin.login=lg; admin.password=hashStr(pw); admin.role="admin";
+  db.settings.activeUserId=admin.id; save();
+  loginAs(admin);
+}
+function switchTo(id){ const c=db.caissiers.find(x=>x.id===id); if(!c) return; if(c.id===authUserId){ closeOverlay(); return; } openLoginFor(c); }
+function openLoginFor(c){
+  openModal("Connexion — "+c.nom, `
+    <p style="font-size:13.5px;color:var(--ink-soft);margin:0 0 12px">Entrez le mot de passe de <b>${esc(c.nom)}</b> (${esc(c.login||"")}).</p>
+    <div class="field"><input id="sw_pass" type="password" placeholder="Mot de passe" style="text-align:center;font-size:18px"></div>
+    <button class="btn btn-primary btn-block" data-action="confirmSwitch" data-id="${c.id}">Se connecter</button>
+  `);
+  setTimeout(()=>{ const i=document.getElementById("sw_pass"); if(i) i.focus(); },60);
+}
+function confirmSwitch(id){
+  const c=db.caissiers.find(x=>x.id===id); if(!c) return;
+  const pw=document.getElementById("sw_pass").value||"";
+  if(!c.password || c.password!==hashStr(pw)){ toast("Mot de passe incorrect"); return; }
+  closeOverlay(); loginAs(c);
+}
+function boot(){
+  try{ const sid=sessionStorage.getItem("boul_auth"); if(sid && db.caissiers.some(c=>c.id===sid)) authUserId=sid; }catch(e){}
+  if(isAuthed()){ showChromeUI(); setView("dashboard"); return; }
+  renderWelcome();
+}
+function closeOverlay(){ modalRoot.innerHTML = ""; }
+
+let toastTimer;
+function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),2300); }
+
+/* ============================ Vues ============================ */
+const VIEWS = {};
+const AFTER = {};
+
+/* ---- Tableau de bord ---- */
+VIEWS.dashboard = function(){
+  const tk = todayKey();
+  const vJour = db.ventes.filter(v=>localKey(v.date)===tk);
+  const dJour = db.decaissements.filter(d=>localKey(d.date)===tk);
+  const pJour = db.paiements.filter(p=>localKey(p.date)===tk);
+  const caJour = sum(vJour,v=>v.total);
+  const depJour = sum(dJour,d=>d.montant) + sum(pJour,p=>p.montant);
+  const benefJour = caJour - depJour;
+  const lows = db.produits.filter(p=>Number(p.stock)<=Number(p.seuil));
+  const credits = creditsTotal();
+  const nbDebiteurs = db.clients.filter(c=>clientBalance(c.id)>0).length;
+
+  const days=[]; for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); days.push(d); }
+  const dayTotals = days.map(d=>{ const k=localKey(d); return sum(db.ventes.filter(v=>localKey(v.date)===k),v=>v.total); });
+  const maxT = Math.max(1,...dayTotals);
+  const dn = ["dim","lun","mar","mer","jeu","ven","sam"];
+
+  const admin = isAdmin();
+  const financier = admin ? `
+  <div class="receipt">
+    <div class="r-label">Solde de caisse</div>
+    <div class="r-amount money">${money(soldeCaisse())}</div>
+    <div class="r-rows">
+      <div class="r-row"><div class="t"><span class="dot" style="background:var(--income)"></span>Ventes du jour</div><div class="n pos">${money(caJour)}</div></div>
+      <div class="r-row"><div class="t"><span class="dot" style="background:var(--expense)"></span>Sorties du jour</div><div class="n neg">${money(depJour)}</div></div>
+    </div>
+  </div>
+  <div class="kpis" style="margin-top:14px">
+    <div class="kpi"><div class="label">Bénéfice du jour</div><div class="val ${benefJour>=0?"pos":"neg"}">${money(benefJour)}</div><div class="meta">${vJour.length} vente(s)</div></div>
+    <div class="kpi"><div class="label">Crédits clients</div><div class="val ${credits>0?"neg":""}">${money(credits)}</div><div class="meta">${nbDebiteurs} client(s) à crédit</div></div>
+  </div>
+  <div class="card pad">
+    <strong style="font-size:15px">Ventes des 7 derniers jours</strong>
+    <div class="chart">
+      ${days.map((d,i)=>`<div class="bar-wrap"><div class="bar" style="height:${Math.round(dayTotals[i]/maxT*100)}%"></div><div class="bl">${dn[d.getDay()]}</div></div>`).join("")}
+    </div>
+  </div>` : `
+  <div class="receipt">
+    <div class="r-label">Caissier en service</div>
+    <div class="r-amount" style="font-size:24px">${esc(activeUser().nom)}</div>
+    <div class="r-rows">
+      <div class="r-row"><div class="t">🧾 Ventes du jour</div><div class="n">${vJour.length}</div></div>
+      <div class="r-row"><div class="t">🧑 Clients à crédit</div><div class="n">${nbDebiteurs}</div></div>
+    </div>
+  </div>`;
+
+  const quick = admin ? `
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary btn-block" data-nav="vente">🛒 Vendre</button>
+      <button class="btn btn-ghost btn-block" data-nav="decaissements">💸 Dépense</button>
+    </div>` : `
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary btn-block" data-nav="vente">🛒 Vendre</button>
+      <button class="btn btn-ghost btn-block" data-nav="clients">🧑 Clients</button>
+    </div>`;
+
+  return `
+  <div class="section-head"><div><h2>Bonjour 👋</h2><div class="sub">${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})} · ${esc(activeUser().nom)}${admin?" · 🛡️ admin":""}</div></div></div>
+
+  ${financier}
+
+  ${lows.length ? `
+  <div class="card" style="margin-top:12px">
+    <div style="padding:14px 14px 4px;display:flex;justify-content:space-between;align-items:center">
+      <strong style="font-size:15px">⚠️ Stock bas</strong>
+      <button class="fab-add" data-nav="stock">Gérer</button>
+    </div>
+    <div class="list">
+      ${lows.map(p=>`<div class="row"><span class="ic">${CAT_IC[p.cat]||"🛒"}</span><div class="body"><div class="t">${esc(p.nom)}</div><div class="s">${esc(p.cat)}</div></div><div class="end"><span class="badge low">${num(p.stock)} ${esc(p.unite)}</span></div></div>`).join("")}
+    </div>
+  </div>` : ""}
+
+  <div class="card pad" style="margin-top:12px">
+    <strong style="font-size:15px;display:block;margin-bottom:11px">Actions rapides</strong>
+    ${quick}
+  </div>
+  `;
+};
+
+/* ---- Point de vente ---- */
+let currentPay = "Espèces";
+function venteProductsHTML(){
+  if(!db.produits.length){
+    return `<div class="empty"><div class="e-ic">🥐</div><div class="e-t">Aucun produit</div><div class="e-s">Ajoutez vos produits pour commencer à vendre.</div><div style="margin-top:14px"><button class="btn btn-primary" data-nav="produits">Ajouter un produit</button></div></div>`;
+  }
+  return `<div class="pos-grid">` + db.produits.map(p=>{
+    const lo = Number(p.stock)<=Number(p.seuil);
+    return `<button class="prod-btn" data-action="addCart" data-id="${p.id}"><div class="pn">${esc(p.nom)}</div><div class="pp">${money(p.pv)}</div><div class="pst ${lo?"lo":""}">Stock : ${num(p.stock)} ${esc(p.unite)}</div></button>`;
+  }).join("") + `</div>`;
+}
+function cartSectionHTML(){
+  if(!state.cart.length){ return `<div class="hint">🧺 Le panier est vide. Touchez un produit ci-dessus pour l'ajouter.</div>`; }
+  const total = sum(state.cart, l=>l.qte*l.prix);
+  const lines = state.cart.map((l,i)=>`
+    <div class="cart-line">
+      <div class="cn"><div class="t">${esc(l.nom)}</div><div class="s">${money(l.prix)} × ${l.qte}</div></div>
+      <div class="stepper"><button data-action="cartDec" data-i="${i}">−</button><span class="q">${l.qte}</span><button data-action="cartInc" data-i="${i}">+</button></div>
+      <div class="lt money">${num(l.qte*l.prix)}</div>
+    </div>`).join("");
+  const clientOpts = `<option value="">— Aucun (vente directe) —</option>` + db.clients.map(c=>`<option value="${c.id}" ${c.id===state.cartClientId?"selected":""}>${esc(c.nom)}</option>`).join("");
+  const recuVal = state.cartRecu||"";
+  const showCash = currentPay==="Espèces";
+  const r = parseFloat(recuVal);
+  const monnaie = (showCash && !isNaN(r)) ? Math.max(0, r-total) : 0;
+  return `
+    <div class="card pad">${lines}<div class="cart-total"><span class="lab">Total</span><span class="amt money">${money(total)}</span></div></div>
+    <div class="field" style="margin-top:13px">
+      <label>Client (pour vente à crédit ou suivi)</label>
+      <div style="display:flex;gap:8px">
+        <select id="cartClient" style="flex:1">${clientOpts}</select>
+        <button class="btn btn-ghost btn-icon" data-action="quickClient" title="Nouveau client">＋</button>
+      </div>
+    </div>
+    <div class="field"><label>Mode de paiement</label>
+      <div class="seg" id="paySeg">${PAY_METHODS.map(m=>`<div class="opt ${m===currentPay?"on":""}" data-action="pickPay" data-pay="${m}">${m}</div>`).join("")}</div>
+    </div>
+    <div class="field" id="cashField" style="${showCash?"":"display:none"}">
+      <label>Montant reçu (espèces)</label>
+      <input id="cartRecu" class="num" inputmode="decimal" value="${recuVal}" placeholder="0">
+      <div id="monnaieLine" style="margin-top:8px;font-family:var(--mono);font-weight:700;color:var(--income);${(showCash && !isNaN(r))?"":"display:none"}">Monnaie à rendre : ${num(monnaie)}</div>
+    </div>
+    <button class="btn btn-primary btn-block" data-action="checkout" style="font-size:17px;padding:15px">✅ Encaisser ${money(total)}</button>
+    <button class="btn btn-ghost btn-block" data-action="clearCart" style="margin-top:9px">Vider le panier</button>
+  `;
+}
+VIEWS.vente = function(){
+  return `
+  <div class="section-head"><div><h2>Point de vente</h2><div class="sub">Caissier : ${esc(activeUser().nom)}</div></div></div>
+  ${venteProductsHTML()}
+  <div style="height:16px"></div>
+  <div id="cartSection">${cartSectionHTML()}</div>
+  `;
+};
+AFTER.vente = function(){
+  const cs = document.getElementById("cartSection");
+  if(!cs) return;
+  cs.addEventListener("change", e=>{ if(e.target.id==="cartClient") state.cartClientId=e.target.value; });
+  cs.addEventListener("input", e=>{ if(e.target.id==="cartRecu"){ state.cartRecu=e.target.value; updateMonnaie(); } });
+};
+function refreshCart(){ const el=document.getElementById("cartSection"); if(el) el.innerHTML=cartSectionHTML(); }
+function updateMonnaie(){
+  const ml=document.getElementById("monnaieLine"); if(!ml) return;
+  const total=sum(state.cart,l=>l.qte*l.prix); const r=parseFloat(state.cartRecu);
+  if(currentPay==="Espèces" && !isNaN(r)){ ml.style.display=""; ml.textContent="Monnaie à rendre : "+num(Math.max(0,r-total)); }
+  else ml.style.display="none";
+}
+
+/* ---- Ventes (historique + reçus) ---- */
+VIEWS.ventes = function(){
+  const items=[...db.ventes].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const tk=todayKey();
+  const caJour=sum(db.ventes.filter(v=>localKey(v.date)===tk),v=>v.total);
+  let body;
+  if(!items.length){
+    body=`<div class="empty"><div class="e-ic">🧾</div><div class="e-t">Aucune vente</div><div class="e-s">Les ventes encaissées et leurs reçus apparaîtront ici.</div><div style="margin-top:14px"><button class="btn btn-primary" data-nav="vente">Faire une vente</button></div></div>`;
+  }else{
+    body=`<div class="card list">`+items.slice(0,200).map(v=>`
+      <div class="row tap" data-action="showReceipt" data-id="${v.id}">
+        <span class="ic">🧾</span>
+        <div class="body"><div class="t">Reçu N° ${v.numero||"—"}${v.paiement==="Crédit"?' <span class="badge low" style="vertical-align:middle">crédit</span>':""}</div>
+          <div class="s">${fmtDateTime(v.date)} · ${esc(v.userNom||"—")}${v.clientNom?" · "+esc(v.clientNom):""}</div></div>
+        <div class="end"><div class="amt">${money(v.total)}</div><span class="badge">${esc(v.paiement)}</span></div>
+      </div>`).join("")+`</div>`;
+  }
+  return `
+  <div class="section-head"><div><h2>Ventes</h2><div class="sub">${items.length} reçu(s)</div></div>
+    <button class="fab-add" data-nav="vente">＋ Vendre</button></div>
+  <div class="total-strip"><span class="lab">Encaissé aujourd'hui</span><span class="amt pos money">${money(caJour)}</span></div>
+  ${body}`;
+};
+function ticketInner(s){
+  const set=db.settings;
+  const lines=s.items.map(it=>`<div class="tk-line"><span class="tk-q">${it.qte}×</span><span class="tk-n">${esc(it.nom)}</span><span class="tk-a">${num(it.qte*it.prix)}</span></div>`).join("");
+  return `
+    <div class="tk-head">
+      <div class="tk-name">${esc(set.nom)}</div>
+      ${set.adresse?`<div class="tk-sub">${esc(set.adresse)}</div>`:""}
+      ${set.telephone?`<div class="tk-sub">Tél : ${esc(set.telephone)}</div>`:""}
+    </div>
+    <div class="tk-sep"></div>
+    <div class="tk-meta">
+      <div>Reçu N° ${s.numero||"—"}</div>
+      <div>${fmtDateTime(s.date)}</div>
+      <div>Caissier : ${esc(s.userNom||"—")}</div>
+      ${s.clientNom?`<div>Client : ${esc(s.clientNom)}</div>`:""}
+    </div>
+    <div class="tk-sep"></div>
+    <div>${lines}</div>
+    <div class="tk-sep"></div>
+    <div class="tk-total"><span>TOTAL</span><span>${money(s.total)}</span></div>
+    <div class="tk-pay">Paiement : ${esc(s.paiement)}</div>
+    ${s.recu?`<div class="tk-pay">Reçu : ${num(s.recu)} ${db.settings.devise} — Monnaie : ${num(s.monnaie||0)} ${db.settings.devise}</div>`:""}
+    ${s.paiement==="Crédit"?`<div class="tk-credit">★ VENTE À CRÉDIT ★<br>Solde du client : ${money(clientBalance(s.clientId))}</div>`:""}
+    <div class="tk-sep"></div>
+    <div class="tk-foot">Merci de votre visite !</div>
+  `;
+}
+function showReceipt(id, justSold){
+  const s=db.ventes.find(v=>v.id===id); if(!s) return;
+  openModal("Reçu", `
+    <div class="ticket">${ticketInner(s)}</div>
+    <div style="display:flex;gap:10px;margin-top:14px">
+      <button class="btn btn-primary btn-block" data-action="printReceipt" data-id="${s.id}">🖨️ Imprimer</button>
+      <button class="btn btn-ghost btn-block" data-action="${justSold?"doneSale":"close"}">${justSold?"Terminer":"Fermer"}</button>
+    </div>
+    <p class="hint" style="margin-top:12px">Sur Android, « Imprimer » permet d'enregistrer en PDF ou d'envoyer vers une imprimante (y compris une imprimante thermique de tickets via Bluetooth).</p>
+  `);
+  if(justSold) toast("✅ Vente N° "+s.numero+" enregistrée");
+}
+function printReceipt(id){
+  const s=db.ventes.find(v=>v.id===id); if(!s) return;
+  document.getElementById("printArea").innerHTML = `<div class="ticket">${ticketInner(s)}</div>`;
+  window.print();
+}
+
+/* ---- Stock ---- */
+VIEWS.stock = function(){
+  const totalVal = sum(db.produits, p=>Number(p.stock)*Number(p.pr));
+  const lows = db.produits.filter(p=>Number(p.stock)<=Number(p.seuil)).length;
+  let body;
+  if(!db.produits.length){
+    body = `<div class="empty"><div class="e-ic">📦</div><div class="e-t">Aucun produit en stock</div><div class="e-s">Ajoutez d'abord des produits.</div><div style="margin-top:14px"><button class="btn btn-primary" data-nav="produits">Ajouter un produit</button></div></div>`;
+  }else{
+    body = `<div class="card list">` + db.produits.map(p=>{
+      const lo = Number(p.stock)<=Number(p.seuil);
+      return `<div class="row"><span class="ic">${CAT_IC[p.cat]||"🛒"}</span><div class="body"><div class="t">${esc(p.nom)}</div><div class="s">${esc(p.cat)} · seuil ${num(p.seuil)}</div></div><div class="end"><span class="badge ${lo?"low":"ok"} money">${num(p.stock)} ${esc(p.unite)}</span><button class="btn btn-sm btn-ghost" data-action="openStock" data-id="${p.id}">Mouvement</button></div></div>`;
+    }).join("") + `</div>`;
+  }
+  return `
+  <div class="section-head"><div><h2>Stock</h2><div class="sub">${lows} alerte(s) de stock bas</div></div>
+    <button class="fab-add" data-action="openStock">＋ Mouvement</button></div>
+  <div class="total-strip"><span class="lab">Valeur du stock (au coût)</span><span class="amt money">${money(totalVal)}</span></div>
+  ${body}
+  <div class="hint" style="margin-top:13px">Un « mouvement » enregistre une <b>entrée</b> (réappro), une <b>sortie</b> (perte, casse, don) ou un <b>ajustement</b> (corriger le stock réel).</div>
+  `;
+};
+
+/* ---- Décaissements ---- */
+VIEWS.decaissements = function(){
+  const tk = todayKey();
+  const totalJour = sum(db.decaissements.filter(d=>localKey(d.date)===tk),d=>d.montant);
+  const totalMois = sum(db.decaissements.filter(d=>{ const x=new Date(d.date),n=new Date(); return x.getMonth()===n.getMonth()&&x.getFullYear()===n.getFullYear(); }),d=>d.montant);
+  const items = [...db.decaissements].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  let body;
+  if(!items.length){
+    body = `<div class="empty"><div class="e-ic">💸</div><div class="e-t">Aucun décaissement</div><div class="e-s">Enregistrez ici l'argent qui sort : achats, loyer, factures…</div><div style="margin-top:14px"><button class="btn btn-primary" data-action="openDec">Nouveau décaissement</button></div></div>`;
+  }else{
+    body = `<div class="card list">` + items.map(d=>`<div class="row"><span class="ic">${EXP_IC[d.categorie]||"💼"}</span><div class="body"><div class="t">${esc(d.categorie)}</div><div class="s">${esc(d.description||d.beneficiaire||"")} · ${fmtDate(d.date)}${d.userNom?" · "+esc(d.userNom):""}</div></div><div class="end"><div class="amt neg money">− ${num(d.montant)}</div><button class="btn btn-sm btn-danger" data-action="delDec" data-id="${d.id}">Suppr.</button></div></div>`).join("") + `</div>`;
+  }
+  return `
+  <div class="section-head"><div><h2>Décaissements</h2><div class="sub">Sorties d'argent</div></div>
+    <button class="fab-add" data-action="openDec">＋ Ajouter</button></div>
+  <div class="kpis">
+    <div class="kpi"><div class="label">Aujourd'hui</div><div class="val neg">${money(totalJour)}</div></div>
+    <div class="kpi"><div class="label">Ce mois</div><div class="val neg">${money(totalMois)}</div></div>
+  </div>
+  ${body}`;
+};
+
+/* ---- Clients (crédit) ---- */
+VIEWS.clients = function(){
+  const totalDette = creditsTotal();
+  let body;
+  if(!db.clients.length){
+    body=`<div class="empty"><div class="e-ic">🧑‍🤝‍🧑</div><div class="e-t">Aucun client</div><div class="e-s">Ajoutez vos clients réguliers pour leur vendre à crédit et suivre ce qu'ils doivent.</div><div style="margin-top:14px"><button class="btn btn-primary" data-action="openClient">Nouveau client</button></div></div>`;
+  }else{
+    const sorted=[...db.clients].sort((a,b)=>clientBalance(b.id)-clientBalance(a.id));
+    body=`<div class="card list">`+sorted.map(c=>{
+      const bal=clientBalance(c.id);
+      return `<div class="row tap" data-action="clientDetail" data-id="${c.id}"><span class="ic">🧑</span><div class="body"><div class="t">${esc(c.nom)}</div><div class="s">${esc(c.telephone||"—")}</div></div><div class="end"><div class="amt ${bal>0?"neg":"pos"} money">${money(bal)}</div><span class="badge ${bal>0?"low":"ok"}">${bal>0?"à payer":"à jour"}</span></div></div>`;
+    }).join("")+`</div>`;
+  }
+  return `
+  <div class="section-head"><div><h2>Clients</h2><div class="sub">${db.clients.length} client(s)</div></div>
+    <button class="fab-add" data-action="openClient">＋ Client</button></div>
+  <div class="total-strip"><span class="lab">Total dû à la boulangerie</span><span class="amt ${totalDette>0?"neg":""} money">${money(totalDette)}</span></div>
+  ${body}
+  ${db.clients.length?`<div class="hint" style="margin-top:13px">Touchez un client pour voir son ardoise et <b>encaisser un règlement</b>. Les ventes « à crédit » se font depuis l'écran Vente en choisissant le client.</div>`:""}`;
+};
+function clientDetailHTML(c){
+  const bal=clientBalance(c.id);
+  const credits=db.ventes.filter(v=>v.clientId===c.id && v.paiement==="Crédit").sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const regs=db.reglements.filter(r=>r.clientId===c.id).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const histo=[
+    ...credits.map(v=>({type:"credit",date:v.date,montant:v.total,ref:v})),
+    ...regs.map(r=>({type:"reg",date:r.date,montant:r.montant,ref:r}))
+  ].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const histHtml = histo.length ? `<div class="card list">`+histo.map(h=>{
+    if(h.type==="credit") return `<div class="row tap" data-action="showReceipt" data-id="${h.ref.id}"><span class="ic">🧾</span><div class="body"><div class="t">Vente à crédit · N° ${h.ref.numero||"—"}</div><div class="s">${fmtDate(h.date)} · voir le reçu</div></div><div class="end"><div class="amt neg money">+ ${num(h.montant)}</div></div></div>`;
+    return `<div class="row"><span class="ic">💰</span><div class="body"><div class="t">Règlement reçu</div><div class="s">${fmtDate(h.date)}${h.ref.userNom?" · "+esc(h.ref.userNom):""}</div></div><div class="end"><div class="amt pos money">− ${num(h.montant)}</div><button class="btn btn-sm btn-danger" data-action="delReglement" data-id="${h.ref.id}" data-cid="${c.id}">Suppr.</button></div></div>`;
+  }).join("")+`</div>` : `<div class="hint">Aucun mouvement pour ce client.</div>`;
+  return `
+    <div class="receipt" style="margin-bottom:14px">
+      <div class="r-label">Solde dû par ${esc(c.nom)}</div>
+      <div class="r-amount money ${bal>0?"neg":"pos"}">${money(bal)}</div>
+      <div style="font-size:12.5px;color:var(--ink-soft)">${esc(c.telephone||"")}</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:14px">
+      <button class="btn btn-primary btn-block" data-action="openReglement" data-id="${c.id}" ${bal<=0?"disabled style='opacity:.5'":""}>💰 Encaisser un règlement</button>
+      <button class="btn btn-ghost btn-icon" data-action="openClient" data-id="${c.id}" title="Modifier">✏️</button>
+    </div>
+    ${histHtml}
+    <button class="btn btn-danger btn-block" data-action="delClient" data-id="${c.id}" style="margin-top:13px">Supprimer ce client</button>
+  `;
+}
+function openClientDetail(id){ const c=clientById(id); if(!c) return; openModal(c.nom, clientDetailHTML(c)); }
+
+/* ---- Produits ---- */
+VIEWS.produits = function(){
+  let body;
+  if(!db.produits.length){
+    body = `<div class="empty"><div class="e-ic">🥐</div><div class="e-t">Aucun produit</div><div class="e-s">Créez votre catalogue : pain, viennoiseries, pâtisseries…</div><div style="margin-top:14px"><button class="btn btn-primary" data-action="openProd">Nouveau produit</button></div></div>`;
+  }else{
+    body = `<div class="card list">` + db.produits.map(p=>{
+      const marge = Number(p.pv)-Number(p.pr);
+      return `<div class="row"><span class="ic">${CAT_IC[p.cat]||"🛒"}</span><div class="body"><div class="t">${esc(p.nom)}</div><div class="s">${esc(p.cat)} · coût ${num(p.pr)} · marge ${num(marge)}</div></div><div class="end"><div class="amt money">${money(p.pv)}</div><button class="btn btn-sm btn-ghost" data-action="openProd" data-id="${p.id}">Modifier</button></div></div>`;
+    }).join("") + `</div>`;
+  }
+  return `
+  <div class="section-head"><div><h2>Produits</h2><div class="sub">${db.produits.length} article(s)</div></div>
+    <button class="fab-add" data-action="openProd">＋ Produit</button></div>
+  ${body}`;
+};
+
+/* ---- Employés ---- */
+VIEWS.employes = function(){
+  let body;
+  if(!db.employes.length){
+    body = `<div class="empty"><div class="e-ic">👥</div><div class="e-t">Aucun employé</div><div class="e-s">Ajoutez votre personnel pour gérer la paie.</div><div style="margin-top:14px"><button class="btn btn-primary" data-action="openEmp">Nouvel employé</button></div></div>`;
+  }else{
+    body = `<div class="card list">` + db.employes.map(e=>`<div class="row"><span class="ic">👤</span><div class="body"><div class="t">${esc(e.nom)}</div><div class="s">${esc(e.poste||"—")}${e.tel?" · "+esc(e.tel):""}</div></div><div class="end"><div class="amt money">${money(e.salaire)}</div><button class="btn btn-sm btn-ghost" data-action="openEmp" data-id="${e.id}">Modifier</button></div></div>`).join("") + `</div>`;
+  }
+  return `
+  <div class="section-head"><div><h2>Employés</h2><div class="sub">${db.employes.length} personne(s)</div></div>
+    <button class="fab-add" data-action="openEmp">＋ Employé</button></div>
+  ${body}
+  ${db.employes.length?`<button class="btn btn-primary btn-block" data-action="openPay" style="margin-top:13px">💵 Enregistrer un paiement</button>`:""}`;
+};
+
+/* ---- Paie ---- */
+VIEWS.paie = function(){
+  const tk = new Date();
+  const totalMois = sum(db.paiements.filter(p=>{ const x=new Date(p.date); return x.getMonth()===tk.getMonth()&&x.getFullYear()===tk.getFullYear(); }),p=>p.montant);
+  const items = [...db.paiements].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  let body;
+  if(!db.employes.length){
+    body = `<div class="empty"><div class="e-ic">👥</div><div class="e-t">Ajoutez d'abord des employés</div><div class="e-s">La paie a besoin d'au moins un employé.</div><div style="margin-top:14px"><button class="btn btn-primary" data-nav="employes">Aller aux employés</button></div></div>`;
+  }else if(!items.length){
+    body = `<div class="empty"><div class="e-ic">💵</div><div class="e-t">Aucun paiement</div><div class="e-s">Enregistrez les salaires, avances et primes.</div><div style="margin-top:14px"><button class="btn btn-primary" data-action="openPay">Nouveau paiement</button></div></div>`;
+  }else{
+    body = `<div class="card list">` + items.map(p=>`<div class="row"><span class="ic">💵</span><div class="body"><div class="t">${esc(p.employeNom)}</div><div class="s">${esc(p.type)}${p.periode?" · "+esc(p.periode):""} · ${fmtDate(p.date)}</div></div><div class="end"><div class="amt neg money">− ${num(p.montant)}</div><button class="btn btn-sm btn-danger" data-action="delPay" data-id="${p.id}">Suppr.</button></div></div>`).join("") + `</div>`;
+  }
+  return `
+  <div class="section-head"><div><h2>Paie</h2><div class="sub">Paiements aux employés</div></div>
+    ${db.employes.length?`<button class="fab-add" data-action="openPay">＋ Paiement</button>`:""}</div>
+  <div class="total-strip"><span class="lab">Total payé ce mois</span><span class="amt neg money">${money(totalMois)}</span></div>
+  ${body}`;
+};
+
+/* ---- Caissiers ---- */
+VIEWS.caissiers = function(){
+  const body = `<div class="card list">`+db.caissiers.map(c=>{
+    const on=c.id===authUserId;
+    const adm=c.role==="admin";
+    return `<div class="row"><span class="ic">${adm?"🛡️":"👤"}</span><div class="body"><div class="t">${esc(c.nom)} ${on?'<span class="badge active">connecté</span>':""}</div><div class="s">${adm?"Administrateur":"Caissier"} · ${esc(c.login||"—")}${c.password?"":' · <span style="color:var(--expense)">sans mot de passe</span>'}</div></div><div class="end" style="flex-direction:row;align-items:center;gap:6px">${on?"":`<button class="btn btn-sm btn-ghost" data-action="switchTo" data-id="${c.id}">Connecter</button>`}<button class="btn btn-sm btn-ghost" data-action="openCaissier" data-id="${c.id}">Modifier</button></div></div>`;
+  }).join("")+`</div>`;
+  return `
+  <div class="section-head"><div><h2>Utilisateurs</h2><div class="sub">${db.caissiers.length} compte(s)</div></div>
+    <button class="fab-add" data-action="openCaissier">＋ Ajouter</button></div>
+  ${body}
+  <div class="hint" style="margin-top:13px">Chaque compte a un <b>identifiant</b> et un <b>mot de passe</b> pour se connecter. L'<b>administrateur</b> 🛡️ a accès à tout ; un <b>caissier</b> 👤 ne peut que vendre, gérer les clients et le stock. « Connecter » bascule sur ce compte (mot de passe demandé).</div>`;
+};
+
+/* ---- Rapports ---- */
+let reportPeriod = "7j";
+function periodStart(p){
+  const d=new Date(); d.setHours(0,0,0,0);
+  if(p==="jour") return d;
+  if(p==="7j"){ d.setDate(d.getDate()-6); return d; }
+  if(p==="30j"){ d.setDate(d.getDate()-29); return d; }
+  return new Date(0);
+}
+VIEWS.rapports = function(){
+  const start=periodStart(reportPeriod);
+  const inP = iso => new Date(iso) >= start;
+  const ventes=db.ventes.filter(v=>inP(v.date));
+  const decs=db.decaissements.filter(d=>inP(d.date));
+  const pays=db.paiements.filter(p=>inP(p.date));
+  const regs=db.reglements.filter(r=>inP(r.date));
+  const ca=sum(ventes,v=>v.total);
+  const dep=sum(decs,d=>d.montant);
+  const sal=sum(pays,p=>p.montant);
+  const creditAccorde=sum(ventes.filter(v=>v.paiement==="Crédit"),v=>v.total);
+  const creditEncaisse=sum(regs,r=>r.montant);
+  const benef=ca-dep-sal;
+
+  const map={};
+  ventes.forEach(v=>v.items.forEach(it=>{ const k=it.nom; map[k]=map[k]||{q:0,ca:0}; map[k].q+=it.qte; map[k].ca+=it.qte*it.prix; }));
+  const top=Object.entries(map).sort((a,b)=>b[1].ca-a[1].ca).slice(0,5);
+
+  const byUser={};
+  ventes.forEach(v=>{ const k=v.userNom||"—"; byUser[k]=byUser[k]||{ca:0,n:0}; byUser[k].ca+=v.total; byUser[k].n++; });
+  const usersArr=Object.entries(byUser).sort((a,b)=>b[1].ca-a[1].ca);
+
+  const labels={jour:"Aujourd'hui","7j":"7 jours","30j":"30 jours",tout:"Tout"};
+  return `
+  <div class="section-head"><div><h2>Rapports</h2><div class="sub">Période : ${labels[reportPeriod]}</div></div></div>
+  <div class="seg" id="periodSeg" style="margin-bottom:12px">
+    ${["jour","7j","30j","tout"].map(p=>`<div class="opt ${p===reportPeriod?"on":""}" data-action="pickPeriod" data-p="${p}">${labels[p]}</div>`).join("")}
+  </div>
+  <button class="btn btn-ghost btn-block" data-action="printReport" style="margin-bottom:14px">⬇️ Exporter le rapport en PDF</button>
+
+  <div class="receipt">
+    <div class="r-label">Bénéfice net</div>
+    <div class="r-amount money ${benef>=0?"pos":"neg"}">${money(benef)}</div>
+    <div class="r-rows">
+      <div class="r-row"><div class="t"><span class="dot" style="background:var(--income)"></span>Chiffre d'affaires</div><div class="n pos">${money(ca)}</div></div>
+      <div class="r-row"><div class="t"><span class="dot" style="background:var(--expense)"></span>Dépenses + paie</div><div class="n neg">${money(dep+sal)}</div></div>
+    </div>
+  </div>
+
+  <div class="kpis" style="margin-top:14px">
+    <div class="kpi"><div class="label">Ventes</div><div class="val">${ventes.length}</div><div class="meta">${money(ca)}</div></div>
+    <div class="kpi"><div class="label">Panier moyen</div><div class="val">${money(ventes.length?ca/ventes.length:0)}</div></div>
+    <div class="kpi"><div class="label">Crédit accordé</div><div class="val neg">${money(creditAccorde)}</div></div>
+    <div class="kpi"><div class="label">Règlements reçus</div><div class="val pos">${money(creditEncaisse)}</div></div>
+  </div>
+
+  ${usersArr.length>1 || (usersArr.length===1) ? `
+  <div class="card pad">
+    <strong style="font-size:15px;display:block;margin-bottom:10px">Ventes par caissier</strong>
+    <div class="list" style="margin:0 -16px -16px">
+      ${usersArr.map(u=>`<div class="row" style="background:transparent"><span class="ic">👤</span><div class="body"><div class="t">${esc(u[0])}</div><div class="s">${u[1].n} vente(s)</div></div><div class="end"><div class="amt pos money">${money(u[1].ca)}</div></div></div>`).join("")}
+    </div>
+  </div>`:""}
+
+  <div class="card pad" style="margin-top:12px">
+    <strong style="font-size:15px;display:block;margin-bottom:10px">Top produits</strong>
+    ${top.length ? `<div class="list" style="margin:0 -16px -16px">${top.map((t,i)=>`<div class="row" style="background:transparent"><span class="ic">${i===0?"🥇":i===1?"🥈":i===2?"🥉":"🔹"}</span><div class="body"><div class="t">${esc(t[0])}</div><div class="s">${num(t[1].q)} vendu(s)</div></div><div class="end"><div class="amt pos money">${money(t[1].ca)}</div></div></div>`).join("")}</div>` : `<div class="hint">Aucune vente sur cette période.</div>`}
+  </div>`;
+};
+
+function reportPrintHTML(){
+  const labels={jour:"Aujourd'hui","7j":"7 derniers jours","30j":"30 derniers jours",tout:"Depuis le début"};
+  const start=periodStart(reportPeriod);
+  const inP = iso => new Date(iso) >= start;
+  const ventes=db.ventes.filter(v=>inP(v.date));
+  const decs=db.decaissements.filter(d=>inP(d.date));
+  const pays=db.paiements.filter(p=>inP(p.date));
+  const regs=db.reglements.filter(r=>inP(r.date));
+  const ca=sum(ventes,v=>v.total), dep=sum(decs,d=>d.montant), sal=sum(pays,p=>p.montant);
+  const creditAccorde=sum(ventes.filter(v=>v.paiement==="Crédit"),v=>v.total);
+  const creditEncaisse=sum(regs,r=>r.montant);
+  const benef=ca-dep-sal;
+  const map={};
+  ventes.forEach(v=>v.items.forEach(it=>{ map[it.nom]=map[it.nom]||{q:0,ca:0}; map[it.nom].q+=it.qte; map[it.nom].ca+=it.qte*it.prix; }));
+  const prod=Object.entries(map).sort((a,b)=>b[1].ca-a[1].ca);
+  const byUser={};
+  ventes.forEach(v=>{ const k=v.userNom||"—"; byUser[k]=byUser[k]||{ca:0,n:0}; byUser[k].ca+=v.total; byUser[k].n++; });
+  const usersArr=Object.entries(byUser).sort((a,b)=>b[1].ca-a[1].ca);
+  const byCat={};
+  decs.forEach(d=>{ byCat[d.categorie]=(byCat[d.categorie]||0)+d.montant; });
+  const catArr=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const set=db.settings;
+  const tr = rows => rows.map(r=>`<tr><td>${r[0]}</td><td class="r">${r[1]}</td></tr>`).join("");
+  return `<div class="report">
+    <div class="rp-head">
+      <div class="rp-name">${esc(set.nom)}</div>
+      ${set.adresse?`<div class="rp-sub">${esc(set.adresse)}</div>`:""}
+      ${set.telephone?`<div class="rp-sub">Tél : ${esc(set.telephone)}</div>`:""}
+      <div class="rp-title">Rapport d'activité — ${labels[reportPeriod]}</div>
+      <div class="rp-sub">Édité le ${fmtDateTime(new Date().toISOString())} par ${esc(activeUser().nom)}</div>
+    </div>
+
+    <h4>Résumé financier</h4>
+    <table>
+      <tr><td>Chiffre d'affaires (${ventes.length} ventes)</td><td class="r">${money(ca)}</td></tr>
+      <tr><td>Décaissements</td><td class="r">− ${money(dep)}</td></tr>
+      <tr><td>Salaires versés</td><td class="r">− ${money(sal)}</td></tr>
+      <tr class="tot"><td>Bénéfice net</td><td class="r">${money(benef)}</td></tr>
+      <tr><td>Panier moyen</td><td class="r">${money(ventes.length?ca/ventes.length:0)}</td></tr>
+      <tr><td>Crédit accordé sur la période</td><td class="r">${money(creditAccorde)}</td></tr>
+      <tr><td>Règlements de crédit encaissés</td><td class="r">${money(creditEncaisse)}</td></tr>
+      <tr><td>Solde de caisse actuel</td><td class="r">${money(soldeCaisse())}</td></tr>
+      <tr><td>Total des crédits clients en cours</td><td class="r">${money(creditsTotal())}</td></tr>
+    </table>
+
+    <h4>Ventes par caissier</h4>
+    <table><tr><th>Caissier</th><th class="r">Ventes / Total</th></tr>
+      ${usersArr.length?usersArr.map(u=>`<tr><td>${esc(u[0])}</td><td class="r">${u[1].n} · ${money(u[1].ca)}</td></tr>`).join(""):`<tr><td colspan="2">Aucune vente</td></tr>`}
+    </table>
+
+    <h4>Détail des produits vendus</h4>
+    <table><tr><th>Produit</th><th class="r">Qté · CA</th></tr>
+      ${prod.length?prod.map(p=>`<tr><td>${esc(p[0])}</td><td class="r">${num(p[1].q)} · ${money(p[1].ca)}</td></tr>`).join(""):`<tr><td colspan="2">Aucune vente</td></tr>`}
+    </table>
+
+    ${catArr.length?`<h4>Dépenses par catégorie</h4>
+    <table><tr><th>Catégorie</th><th class="r">Montant</th></tr>
+      ${catArr.map(c=>`<tr><td>${esc(c[0])}</td><td class="r">${money(c[1])}</td></tr>`).join("")}
+    </table>`:""}
+
+    <div class="rp-foot">${esc(set.nom)} · Rapport généré par l'application de gestion</div>
+  </div>`;
+}
+function printReport(){
+  document.getElementById("printArea").innerHTML = reportPrintHTML();
+  window.print();
+}
+
+/* ---- Paramètres ---- */
+VIEWS.parametres = function(){
+  const s=db.settings;
+  const stats=`${db.produits.length} produits · ${db.ventes.length} ventes · ${db.clients.length} clients · ${db.caissiers.length} caissiers`;
+  return `
+  <div class="section-head"><div><h2>Paramètres</h2><div class="sub">Configuration de l'application</div></div></div>
+
+  <div class="card pad">
+    <div class="field"><label>Nom de la boulangerie</label><input id="setNom" value="${esc(s.nom)}" placeholder="Ma Boulangerie"></div>
+    <div class="field"><label>Adresse (sur le reçu)</label><input id="setAdresse" value="${esc(s.adresse||"")}" placeholder="Ex : Rue Lamarre, Port-au-Prince"></div>
+    <div class="field-row">
+      <div class="field"><label>Téléphone (reçu)</label><input id="setTel" inputmode="tel" value="${esc(s.telephone||"")}" placeholder="+509 …"></div>
+      <div class="field"><label>Devise</label><input id="setDevise" value="${esc(s.devise)}" placeholder="HTG" maxlength="6"></div>
+    </div>
+    <div class="field"><label>Caisse initiale</label><input id="setCaisse" class="num" inputmode="decimal" value="${s.caisseInitiale}"></div>
+    <button class="btn btn-primary btn-block" data-action="saveSettings">Enregistrer les paramètres</button>
+  </div>
+
+  <button class="card menu-item" data-nav="caissiers" style="margin-top:12px;border-radius:var(--radius)">
+    <span class="mi-ic">👤</span><span><span class="mi-t">Caissiers / utilisateurs</span><br><span class="mi-s">${db.caissiers.length} caissier(s) · actif : ${esc(activeUser().nom)}</span></span><span class="chev">›</span>
+  </button>
+
+  <div class="card pad" style="margin-top:12px">
+    <strong style="font-size:15px;display:block;margin-bottom:4px">Sauvegarde des données</strong>
+    <p style="margin:0 0 12px;font-size:13px;color:var(--ink-soft)">Les données sont stockées sur cet appareil${Store.persistent?"":" (mémoire temporaire ici — exportez régulièrement)"}. Exportez un fichier de sauvegarde et gardez-le en lieu sûr, ou pour transférer vers un autre téléphone.</p>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost btn-block" data-action="exportData">⬇️ Exporter</button>
+      <button class="btn btn-ghost btn-block" data-action="importData">⬆️ Importer</button>
+    </div>
+    <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+  </div>
+
+  <div class="card pad" style="margin-top:12px">
+    <strong style="font-size:15px;display:block;margin-bottom:6px">Contenu actuel</strong>
+    <p style="margin:0 0 12px;font-size:13px;color:var(--ink-soft)">${stats}</p>
+    <button class="btn btn-danger btn-block" data-action="resetData">🗑️ Réinitialiser toutes les données</button>
+  </div>
+
+  <p style="text-align:center;color:var(--ink-soft);font-size:12px;margin:18px 0 4px">🥖 Ma Boulangerie · Application de gestion hors-ligne</p>
+  `;
+};
+AFTER.parametres = function(){ const f=document.getElementById("importFile"); if(f) f.addEventListener("change", handleImportFile); };
+
+/* ============================ Modales (formulaires) ============================ */
+function selOptions(list, current){ return list.map(o=>`<option ${o===current?"selected":""}>${esc(o)}</option>`).join(""); }
+
+function openProd(id){
+  const p=id?prodById(id):null;
+  openModal(p?"Modifier le produit":"Nouveau produit", `
+    <div class="field"><label>Nom du produit</label><input id="f_nom" value="${p?esc(p.nom):""}" placeholder="Ex : Pain au beurre"></div>
+    <div class="field"><label>Catégorie</label><select id="f_cat">${selOptions(CATS, p?p.cat:"Pain")}</select></div>
+    <div class="field-row"><div class="field"><label>Prix de vente</label><input id="f_pv" class="num" inputmode="decimal" value="${p?p.pv:""}" placeholder="0"></div><div class="field"><label>Coût (revient)</label><input id="f_pr" class="num" inputmode="decimal" value="${p?p.pr:""}" placeholder="0"></div></div>
+    <div class="field-row"><div class="field"><label>Stock actuel</label><input id="f_stock" class="num" inputmode="decimal" value="${p?p.stock:0}"></div><div class="field"><label>Unité</label><input id="f_unite" value="${p?esc(p.unite):"pièce"}" placeholder="pièce"></div></div>
+    <div class="field"><label>Seuil d'alerte (stock bas)</label><input id="f_seuil" class="num" inputmode="decimal" value="${p?p.seuil:5}"></div>
+    <button class="btn btn-primary btn-block" data-action="saveProd" ${id?`data-id="${id}"`:""}>${p?"Enregistrer":"Ajouter le produit"}</button>
+    ${p?`<button class="btn btn-danger btn-block" data-action="delProd" data-id="${id}" style="margin-top:9px">Supprimer ce produit</button>`:""}
+  `);
+}
+function saveProd(id){
+  const nom=document.getElementById("f_nom").value.trim();
+  if(!nom){ toast("Indiquez un nom"); return; }
+  const obj={ nom, cat:document.getElementById("f_cat").value, pv:parseFloat(document.getElementById("f_pv").value)||0, pr:parseFloat(document.getElementById("f_pr").value)||0, stock:parseFloat(document.getElementById("f_stock").value)||0, unite:document.getElementById("f_unite").value.trim()||"pièce", seuil:parseFloat(document.getElementById("f_seuil").value)||0 };
+  if(id){ Object.assign(prodById(id),obj); toast("Produit modifié"); }
+  else { db.produits.push({id:uid(),...obj}); toast("Produit ajouté"); }
+  save(); closeOverlay(); setView(state.view);
+}
+function delProd(id){ if(!confirm("Supprimer ce produit ?")) return; db.produits=db.produits.filter(p=>p.id!==id); save(); closeOverlay(); toast("Produit supprimé"); setView(state.view); }
+
+let mType="entree";
+function openStock(id){
+  if(!db.produits.length){ toast("Ajoutez d'abord un produit"); return; }
+  const opts=db.produits.map(p=>`<option value="${p.id}" ${p.id===id?"selected":""}>${esc(p.nom)} (stock ${num(p.stock)})</option>`).join("");
+  openModal("Mouvement de stock", `
+    <div class="field"><label>Produit</label><select id="m_prod">${opts}</select></div>
+    <div class="field"><label>Type de mouvement</label>
+      <div class="seg" id="m_typeSeg">
+        <div class="opt on" data-action="pickMtype" data-t="entree">＋ Entrée</div>
+        <div class="opt" data-action="pickMtype" data-t="sortie">− Sortie</div>
+        <div class="opt" data-action="pickMtype" data-t="ajust">= Ajuster</div>
+      </div>
+    </div>
+    <div class="field"><label id="m_qlabel">Quantité à ajouter</label><input id="m_qte" class="num" inputmode="decimal" placeholder="0"></div>
+    <div class="field"><label>Note (facultatif)</label><input id="m_note" placeholder="Ex : réappro, casse, inventaire…"></div>
+    <button class="btn btn-primary btn-block" data-action="saveStock">Valider le mouvement</button>
+  `);
+  mType="entree";
+}
+function saveStock(){
+  const id=document.getElementById("m_prod").value; const p=prodById(id); if(!p) return;
+  const q=parseFloat(document.getElementById("m_qte").value);
+  if(isNaN(q)){ toast("Indiquez une quantité"); return; }
+  const note=document.getElementById("m_note").value.trim();
+  let delta;
+  if(mType==="entree"){ p.stock=Number(p.stock)+q; delta=q; }
+  else if(mType==="sortie"){ p.stock=Number(p.stock)-q; delta=-q; }
+  else { delta=q-Number(p.stock); p.stock=q; }
+  db.mouvements.push({id:uid(),date:new Date().toISOString(),produitId:id,type:mType,qte:delta,note});
+  save(); closeOverlay(); toast("Stock mis à jour"); setView(state.view);
+}
+
+function openDec(){
+  openModal("Nouveau décaissement", `
+    <div class="field"><label>Catégorie</label><select id="d_cat">${selOptions(EXP_CATS,"Matières premières")}</select></div>
+    <div class="field"><label>Montant</label><input id="d_montant" class="num" inputmode="decimal" placeholder="0"></div>
+    <div class="field"><label>Bénéficiaire (facultatif)</label><input id="d_benef" placeholder="Ex : Fournisseur farine"></div>
+    <div class="field"><label>Description (facultatif)</label><input id="d_desc" placeholder="Ex : 2 sacs de farine"></div>
+    <div class="field"><label>Date</label><input id="d_date" type="date" value="${todayKey()}"></div>
+    <button class="btn btn-primary btn-block" data-action="saveDec">Enregistrer la dépense</button>
+  `);
+}
+function saveDec(){
+  const montant=parseFloat(document.getElementById("d_montant").value);
+  if(!montant||montant<=0){ toast("Indiquez un montant"); return; }
+  const dval=document.getElementById("d_date").value; const u=activeUser();
+  db.decaissements.push({ id:uid(), date: dval?new Date(dval+"T12:00:00").toISOString():new Date().toISOString(), categorie:document.getElementById("d_cat").value, montant, beneficiaire:document.getElementById("d_benef").value.trim(), description:document.getElementById("d_desc").value.trim(), userId:u.id, userNom:u.nom });
+  save(); closeOverlay(); toast("Décaissement enregistré"); setView(state.view);
+}
+function delDec(id){ if(!confirm("Supprimer ce décaissement ?")) return; db.decaissements=db.decaissements.filter(d=>d.id!==id); save(); toast("Supprimé"); setView(state.view); }
+
+function openEmp(id){
+  const e=id?empById(id):null;
+  openModal(e?"Modifier l'employé":"Nouvel employé", `
+    <div class="field"><label>Nom complet</label><input id="e_nom" value="${e?esc(e.nom):""}" placeholder="Ex : Jean Pierre"></div>
+    <div class="field"><label>Poste</label><input id="e_poste" value="${e?esc(e.poste||""):""}" placeholder="Ex : Boulanger, Vendeuse"></div>
+    <div class="field"><label>Salaire (référence)</label><input id="e_salaire" class="num" inputmode="decimal" value="${e?e.salaire:""}" placeholder="0"></div>
+    <div class="field"><label>Téléphone (facultatif)</label><input id="e_tel" inputmode="tel" value="${e?esc(e.tel||""):""}" placeholder="+509 …"></div>
+    <button class="btn btn-primary btn-block" data-action="saveEmp" ${id?`data-id="${id}"`:""}>${e?"Enregistrer":"Ajouter l'employé"}</button>
+    ${e?`<button class="btn btn-danger btn-block" data-action="delEmp" data-id="${id}" style="margin-top:9px">Supprimer cet employé</button>`:""}
+  `);
+}
+function saveEmp(id){
+  const nom=document.getElementById("e_nom").value.trim();
+  if(!nom){ toast("Indiquez un nom"); return; }
+  const obj={ nom, poste:document.getElementById("e_poste").value.trim(), salaire:parseFloat(document.getElementById("e_salaire").value)||0, tel:document.getElementById("e_tel").value.trim() };
+  if(id){ Object.assign(empById(id),obj); toast("Employé modifié"); }
+  else { db.employes.push({id:uid(),...obj}); toast("Employé ajouté"); }
+  save(); closeOverlay(); setView(state.view);
+}
+function delEmp(id){ if(!confirm("Supprimer cet employé ?")) return; db.employes=db.employes.filter(e=>e.id!==id); save(); closeOverlay(); toast("Employé supprimé"); setView(state.view); }
+
+function openPay(){
+  if(!db.employes.length){ toast("Ajoutez d'abord un employé"); return; }
+  const opts=db.employes.map(e=>`<option value="${e.id}">${esc(e.nom)}${e.poste?" — "+esc(e.poste):""}</option>`).join("");
+  openModal("Nouveau paiement", `
+    <div class="field"><label>Employé</label><select id="p_emp">${opts}</select></div>
+    <div class="field"><label>Type</label><select id="p_type">${selOptions(PAY_TYPES,"Salaire")}</select></div>
+    <div class="field"><label>Montant</label><input id="p_montant" class="num" inputmode="decimal" placeholder="0"></div>
+    <div class="field"><label>Période (facultatif)</label><input id="p_periode" placeholder="Ex : Juin 2026, semaine 24"></div>
+    <div class="field"><label>Date</label><input id="p_date" type="date" value="${todayKey()}"></div>
+    <button class="btn btn-primary btn-block" data-action="savePay">Enregistrer le paiement</button>
+  `);
+  setTimeout(()=>{ const sel=document.getElementById("p_emp"); const upd=()=>{ const e=empById(sel.value); const mt=document.getElementById("p_montant"); if(e && !mt.value && document.getElementById("p_type").value==="Salaire") mt.value=e.salaire||""; }; sel.addEventListener("change",upd); document.getElementById("p_type").addEventListener("change",upd); upd(); },0);
+}
+function savePay(){
+  const eid=document.getElementById("p_emp").value; const e=empById(eid); if(!e) return;
+  const montant=parseFloat(document.getElementById("p_montant").value);
+  if(!montant||montant<=0){ toast("Indiquez un montant"); return; }
+  const dval=document.getElementById("p_date").value;
+  db.paiements.push({ id:uid(), date: dval?new Date(dval+"T12:00:00").toISOString():new Date().toISOString(), employeId:eid, employeNom:e.nom, type:document.getElementById("p_type").value, montant, periode:document.getElementById("p_periode").value.trim() });
+  save(); closeOverlay(); toast("Paiement enregistré"); setView(state.view);
+}
+function delPay(id){ if(!confirm("Supprimer ce paiement ?")) return; db.paiements=db.paiements.filter(p=>p.id!==id); save(); toast("Supprimé"); setView(state.view); }
+
+/* ---- Clients ---- */
+function openClient(id){
+  const c=id?clientById(id):null;
+  openModal(c?"Modifier le client":"Nouveau client", `
+    <div class="field"><label>Nom du client</label><input id="cl_nom" value="${c?esc(c.nom):""}" placeholder="Ex : Madame Joseph"></div>
+    <div class="field"><label>Téléphone (facultatif)</label><input id="cl_tel" inputmode="tel" value="${c?esc(c.telephone||""):""}" placeholder="+509 …"></div>
+    <button class="btn btn-primary btn-block" data-action="saveClient" ${id?`data-id="${id}"`:""}>${c?"Enregistrer":"Ajouter le client"}</button>
+  `);
+}
+function saveClient(id){
+  const nom=document.getElementById("cl_nom").value.trim();
+  if(!nom){ toast("Indiquez un nom"); return; }
+  const tel=document.getElementById("cl_tel").value.trim();
+  if(id){ Object.assign(clientById(id),{nom,telephone:tel}); save(); closeOverlay(); toast("Client modifié"); openClientDetail(id); return; }
+  const nid=uid(); db.clients.push({id:nid,nom,telephone:tel}); save();
+  if(state.quickClientForCart){ state.quickClientForCart=false; state.cartClientId=nid; closeOverlay(); toast("Client ajouté"); if(state.view==="vente") refreshCart(); else setView(state.view); return; }
+  closeOverlay(); toast("Client ajouté"); setView(state.view);
+}
+function delClient(id){
+  const bal=clientBalance(id);
+  if(bal>0 && !confirm("Ce client doit encore "+money(bal)+". Supprimer quand même ?")) return;
+  if(bal<=0 && !confirm("Supprimer ce client ?")) return;
+  db.clients=db.clients.filter(c=>c.id!==id);
+  save(); closeOverlay(); toast("Client supprimé"); setView("clients");
+}
+function openReglement(id){
+  const c=clientById(id); if(!c) return;
+  const bal=clientBalance(id);
+  openModal("Règlement — "+c.nom, `
+    <p class="hint" style="margin-bottom:13px">Solde actuel : <b>${money(bal)}</b>. Le montant encaissé entrera dans la caisse.</p>
+    <div class="field"><label>Montant reçu</label><input id="rg_montant" class="num" inputmode="decimal" value="${bal>0?bal:""}" placeholder="0"></div>
+    <div class="field"><label>Date</label><input id="rg_date" type="date" value="${todayKey()}"></div>
+    <button class="btn btn-primary btn-block" data-action="saveReglement" data-id="${id}">Encaisser le règlement</button>
+  `);
+}
+function saveReglement(id){
+  const c=clientById(id); if(!c) return;
+  const montant=parseFloat(document.getElementById("rg_montant").value);
+  if(!montant||montant<=0){ toast("Indiquez un montant"); return; }
+  const dval=document.getElementById("rg_date").value; const u=activeUser();
+  db.reglements.push({ id:uid(), date: dval?new Date(dval+"T12:00:00").toISOString():new Date().toISOString(), clientId:id, clientNom:c.nom, montant, userId:u.id, userNom:u.nom });
+  save(); toast("Règlement encaissé"); openClientDetail(id);
+}
+function delReglement(id, cid){
+  if(!confirm("Supprimer ce règlement ?")) return;
+  db.reglements=db.reglements.filter(r=>r.id!==id);
+  save(); toast("Supprimé"); if(cid) openClientDetail(cid); else setView("clients");
+}
+
+/* ---- Caissiers ---- */
+function openCaissier(id){
+  const c=id?db.caissiers.find(x=>x.id===id):null;
+  const role=c?(c.role||"caissier"):"caissier";
+  openModal(c?"Modifier l'utilisateur":"Nouvel utilisateur", `
+    <div class="field"><label>Nom (affiché)</label><input id="ca_nom" value="${c?esc(c.nom):""}" placeholder="Ex : Marie"></div>
+    <div class="field"><label>Identifiant de connexion</label><input id="ca_login" autocapitalize="none" autocorrect="off" value="${c?esc(c.login||""):""}" placeholder="ex : marie"></div>
+    <div class="field"><label>Mot de passe ${c?"(laisser vide = inchangé)":""}</label><input id="ca_pass" type="password" placeholder="${c?"•••••• (inchangé)":"au moins 4 caractères"}"></div>
+    <div class="field"><label>Rôle</label>
+      <div class="seg" id="ca_roleSeg">
+        <div class="opt ${role==="caissier"?"on":""}" data-action="pickRole" data-r="caissier">👤 Caissier</div>
+        <div class="opt ${role==="admin"?"on":""}" data-action="pickRole" data-r="admin">🛡️ Administrateur</div>
+      </div>
+      <input type="hidden" id="ca_role" value="${role}">
+    </div>
+    <button class="btn btn-primary btn-block" data-action="saveCaissier" ${id?`data-id="${id}"`:""}>${c?"Enregistrer":"Ajouter"}</button>
+    ${c?`<button class="btn btn-danger btn-block" data-action="delCaissier" data-id="${id}" style="margin-top:9px">Supprimer</button>`:""}
+  `);
+}
+function saveCaissier(id){
+  const nom=document.getElementById("ca_nom").value.trim();
+  if(!nom){ toast("Indiquez un nom"); return; }
+  const login=document.getElementById("ca_login").value.trim();
+  if(login.length<3){ toast("Identifiant : au moins 3 caractères"); return; }
+  if(db.caissiers.some(c=>c.id!==id && (c.login||"").toLowerCase()===login.toLowerCase())){ toast("Cet identifiant est déjà pris"); return; }
+  const passRaw=document.getElementById("ca_pass").value||"";
+  const role=document.getElementById("ca_role").value==="admin"?"admin":"caissier";
+  if(id){
+    const c=db.caissiers.find(x=>x.id===id);
+    if(role!=="admin" && c.role==="admin" && db.caissiers.filter(x=>x.role==="admin").length<=1){ toast("Gardez au moins un administrateur"); return; }
+    if(passRaw){ if(passRaw.length<4){ toast("Mot de passe : au moins 4 caractères"); return; } c.password=hashStr(passRaw); }
+    c.nom=nom; c.login=login; c.role=role; toast("Utilisateur modifié");
+  } else {
+    if(passRaw.length<4){ toast("Mot de passe : au moins 4 caractères"); return; }
+    db.caissiers.push({id:uid(),nom,login,password:hashStr(passRaw),role}); toast("Utilisateur ajouté");
+  }
+  save(); closeOverlay(); setView("caissiers");
+}
+function delCaissier(id){
+  if(db.caissiers.length<=1){ toast("Au moins un utilisateur est requis"); return; }
+  if(id===authUserId){ toast("Impossible : compte connecté"); return; }
+  const c=db.caissiers.find(x=>x.id===id);
+  if(c.role==="admin" && db.caissiers.filter(x=>x.role==="admin").length<=1){ toast("Gardez au moins un administrateur"); return; }
+  if(!confirm("Supprimer cet utilisateur ?")) return;
+  db.caissiers=db.caissiers.filter(c=>c.id!==id);
+  save(); closeOverlay(); toast("Utilisateur supprimé"); setView("caissiers");
+}
+
+/* ---- Caisse / panier ---- */
+function addCart(id){
+  const p=prodById(id); if(!p) return;
+  const ex=state.cart.find(l=>l.id===id);
+  if(ex) ex.qte++; else state.cart.push({id, nom:p.nom, prix:Number(p.pv), qte:1});
+  refreshCart();
+}
+function checkout(){
+  if(!state.cart.length) return;
+  const total=sum(state.cart,l=>l.qte*l.prix);
+  if(currentPay==="Crédit" && !state.cartClientId){ toast("Choisissez un client pour le crédit"); return; }
+  const client=state.cartClientId?clientById(state.cartClientId):null;
+  const recu=currentPay==="Espèces"?(parseFloat(state.cartRecu)||0):0;
+  const numero=(db.settings.compteurVente=(db.settings.compteurVente||0)+1);
+  const u=activeUser();
+  const sale={ id:uid(), numero, date:new Date().toISOString(), items:state.cart.map(l=>({produitId:l.id,nom:l.nom,prix:l.prix,qte:l.qte})), total, paiement:currentPay, clientId:client?client.id:null, clientNom:client?client.nom:"", recu:recu||null, monnaie:(recu&&currentPay==="Espèces")?Math.max(0,recu-total):null, userId:u.id, userNom:u.nom };
+  db.ventes.push(sale);
+  state.cart.forEach(l=>{ const p=prodById(l.id); if(p) p.stock=Number(p.stock)-l.qte; });
+  state.cart=[]; state.cartClientId=""; state.cartRecu=""; currentPay="Espèces";
+  save();
+  setView("vente");
+  showReceipt(sale.id, true);
+}
+
+/* ---- Paramètres / données ---- */
+function saveSettings(){
+  db.settings.nom=document.getElementById("setNom").value.trim()||"Ma Boulangerie";
+  db.settings.adresse=document.getElementById("setAdresse").value.trim();
+  db.settings.telephone=document.getElementById("setTel").value.trim();
+  db.settings.devise=document.getElementById("setDevise").value.trim()||"HTG";
+  db.settings.caisseInitiale=parseFloat(document.getElementById("setCaisse").value)||0;
+  save(); document.getElementById("brandName").textContent=db.settings.nom;
+  toast("Paramètres enregistrés"); setView("parametres");
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download="sauvegarde-boulangerie-"+todayKey()+".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500); toast("Sauvegarde exportée");
+}
+function importData(){ const f=document.getElementById("importFile"); if(f) f.click(); }
+function handleImportFile(ev){
+  const file=ev.target.files&&ev.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{ try{
+    const data=JSON.parse(reader.result);
+    if(!data||typeof data!=="object"||!("settings" in data)) throw new Error("format");
+    ["produits","ventes","decaissements","employes","paiements","mouvements","clients","reglements","caissiers"].forEach(k=>{ if(!Array.isArray(data[k])) data[k]=[]; });
+    if(!data.caissiers.length) data.caissiers=[{id:uid(),nom:"Caissier 1",pin:""}];
+    if(!data.caissiers.find(c=>c.id===data.settings.activeUserId)) data.settings.activeUserId=data.caissiers[0].id;
+    if(!confirm("Importer cette sauvegarde ? Les données actuelles seront remplacées.")) return;
+    db=data; authUserId=null; save(); toast("Sauvegarde importée"); boot();
+  }catch(e){ toast("Fichier invalide"); } };
+  reader.readAsText(file);
+}
+function resetData(){
+  if(!confirm("Effacer TOUTES les données ? Cette action est irréversible.")) return;
+  if(!confirm("Êtes-vous vraiment sûr ? Pensez à exporter une sauvegarde avant.")) return;
+  db=defaultData(); authUserId=null; save(); toast("Données réinitialisées"); boot();
+}
+
+/* ============================ Gestionnaire de clics ============================ */
+document.addEventListener("click", e => {
+  if(e.target.classList && e.target.classList.contains("overlay")){ closeOverlay(); return; }
+  const navEl=e.target.closest("[data-nav]");
+  if(navEl){ closeOverlay(); setView(navEl.dataset.nav); return; }
+  const el=e.target.closest("[data-action]");
+  if(!el) return;
+  const a=el.dataset.action; const id=el.dataset.id;
+  switch(a){
+    case "close": closeOverlay(); break;
+    case "switchUser": openUserSwitcher(); break;
+    case "switchTo": switchTo(id); break;
+    case "confirmSwitch": confirmSwitch(id); break;
+    case "logout": logout(); break;
+    case "goEnter": goEnter(); break;
+    case "goWelcome": goWelcome(); break;
+    case "pickLogin": pickLogin(id); break;
+    case "doLogin": doLogin(); break;
+    case "doSetup": doSetup(); break;
+    case "openCaissier": openCaissier(id); break;
+    case "saveCaissier": saveCaissier(id); break;
+    case "delCaissier": delCaissier(id); break;
+    case "pickRole": { const r=el.dataset.r; const h=document.getElementById("ca_role"); if(h) h.value=r; document.querySelectorAll("#ca_roleSeg .opt").forEach(o=>o.classList.remove("on")); el.classList.add("on"); break; }
+    // produits
+    case "openProd": openProd(id); break;
+    case "saveProd": saveProd(id); break;
+    case "delProd": delProd(id); break;
+    // stock
+    case "openStock": openStock(id); break;
+    case "saveStock": saveStock(); break;
+    case "pickMtype": { mType=el.dataset.t; document.querySelectorAll("#m_typeSeg .opt").forEach(o=>o.classList.remove("on")); el.classList.add("on"); const lbl=document.getElementById("m_qlabel"); if(lbl) lbl.textContent=mType==="entree"?"Quantité à ajouter":mType==="sortie"?"Quantité à retirer":"Nouveau stock (valeur exacte)"; break; }
+    // décaissements
+    case "openDec": openDec(); break;
+    case "saveDec": saveDec(); break;
+    case "delDec": delDec(id); break;
+    // clients
+    case "openClient": openClient(id); break;
+    case "saveClient": saveClient(id); break;
+    case "delClient": delClient(id); break;
+    case "clientDetail": openClientDetail(id); break;
+    case "quickClient": state.quickClientForCart=true; openClient(); break;
+    case "openReglement": openReglement(id); break;
+    case "saveReglement": saveReglement(id); break;
+    case "delReglement": delReglement(id, el.dataset.cid); break;
+    // employés
+    case "openEmp": openEmp(id); break;
+    case "saveEmp": saveEmp(id); break;
+    case "delEmp": delEmp(id); break;
+    // paie
+    case "openPay": openPay(); break;
+    case "savePay": savePay(); break;
+    case "delPay": delPay(id); break;
+    // ventes / reçus
+    case "showReceipt": showReceipt(id, false); break;
+    case "printReceipt": printReceipt(id); break;
+    case "doneSale": closeOverlay(); setView("vente"); break;
+    // caisse
+    case "addCart": addCart(id); break;
+    case "cartInc": { state.cart[+el.dataset.i].qte++; refreshCart(); break; }
+    case "cartDec": { const i=+el.dataset.i; if(--state.cart[i].qte<=0) state.cart.splice(i,1); refreshCart(); break; }
+    case "clearCart": state.cart=[]; state.cartClientId=""; state.cartRecu=""; refreshCart(); break;
+    case "checkout": checkout(); break;
+    case "pickPay": { currentPay=el.dataset.pay; document.querySelectorAll("#paySeg .opt").forEach(o=>o.classList.remove("on")); el.classList.add("on"); const cf=document.getElementById("cashField"); if(cf) cf.style.display=currentPay==="Espèces"?"":"none"; break; }
+    // rapports
+    case "pickPeriod": reportPeriod=el.dataset.p; setView("rapports"); break;
+    case "printReport": printReport(); break;
+    // paramètres
+    case "saveSettings": saveSettings(); break;
+    case "exportData": exportData(); break;
+    case "importData": importData(); break;
+    case "resetData": resetData(); break;
+  }
+});
+
+/* ============================ Démarrage ============================ */
+boot();
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}</script>
+</body>
+</html>
